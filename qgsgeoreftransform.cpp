@@ -324,26 +324,49 @@ void *QgsHelmertGeorefTransform::GDALTransformerArgs() const
 int QgsHelmertGeorefTransform::helmert_transform( void *pTransformerArg, int bDstToSrc, int nPointCount,
                                                   double *x, double *y, double *z, int *panSuccess   )
 {
-  // TODO: the scale parameter is missing. Transform is definitely not correct, need to look into that...
   HelmertParameters* t = static_cast<HelmertParameters*>( pTransformerArg );
 
-  std::cout<<"helmert parameters: origin "<<t->origin<<", scale: "<<t->scale<<", rotation: "<<t->angle<<std::endl;
-
-  double a = cos( t->angle ), b = sin( t->angle ), x0 = t->origin.x(), y0 = t->origin.y();
-  for ( int i = 0; i < nPointCount; ++i )
+  double a = cos( t->angle ), b = sin( t->angle ), x0 = t->origin.x(), y0 = t->origin.y(), s = t->scale;
+  if ( bDstToSrc == FALSE )
   {
-    double xT = x[i], yT = y[i];
-    if ( bDstToSrc == FALSE )
+    a*= s;
+    b*= s;
+    for ( int i = 0; i < nPointCount; ++i )
     {
-      x[i] = x0 + a * xT - b * yT;
-      y[i] = y0 + b * xT + a * yT;
+      double xT = x[i], yT = y[i];
+      // Because rotation parameters where estimated in a CS with negative y-axis ^= down.
+      // we need to apply the rotation matrix and a change of base:
+      // |cos a,-sin a| |1, 0|   | cos a,  sin a|
+      // |sin a, cos a| |0,-1| = | sin a, -cos a|
+      x[i] = x0 + ( a * xT + b * yT);
+      y[i] = y0 + ( b * xT - a * yT);
+      panSuccess[i] = TRUE;
     }
-    else
+  }
+  else
+  {
+    // Guard against division by zero
+    if (abs(s) < std::numeric_limits<double>::epsilon())
     {
-      x[i] = ( a * ( xT - x0 ) + b * ( yT - y0 ) ) * 1 / ( pow( a, 2 ) + pow( b, 2 ) );
-      y[i] = ( -b * ( xT - x0 ) + a * ( yT - y0 ) ) * 1 / ( pow( a, 2 ) + pow( b, 2 ) );
+      for ( int i = 0; i < nPointCount; ++i )
+      {
+        panSuccess[i] = FALSE;
+      }
+      return TRUE; // seems to be a gdal convention to always return TRUE
     }
-    panSuccess[i] = TRUE;
+    a/= s;
+    b/= s;
+    for ( int i = 0; i < nPointCount; ++i )
+    {
+      double xT = x[i], yT = y[i];
+      xT-= x0;
+      yT-= y0;
+      // | cos a,  sin a |^-1   |cos a,  sin a|
+      // | sin a, -cos a |    = |sin a, -cos a|
+      x[i] =  a * xT + b * yT;
+      y[i] =  b * xT - a * yT;      
+      panSuccess[i] = TRUE;
+    }
   }
   return TRUE;
 }
