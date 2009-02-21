@@ -39,6 +39,7 @@
 #include "qgsgeorefdatapoint.h"
 #include "qgslogger.h"
 #include "qgsproject.h"
+#include <cassert>
 
 #include <QDebug>
 class QgsGeorefTool : public QgsMapTool
@@ -70,7 +71,7 @@ class QgsGeorefTool : public QgsMapTool
 
   private:
     QgsPointDialog* mDlg;
-    bool mAddPoint;
+    const bool mAddPoint;
 };
 
 
@@ -100,7 +101,6 @@ QgsPointDialog::~QgsPointDialog()
   delete mToolPan;
   delete mToolAddPoint;
   delete mToolDeletePoint;
-
 }
 
 void QgsPointDialog::openImageFile( QString layerPath )
@@ -152,6 +152,7 @@ void QgsPointDialog::addPoint( const QgsPoint& pixelCoords, const QgsPoint& mapC
       mAcetateCounter++, pixelCoords, mapCoords );
   pnt->show();
   mPoints.push_back( pnt );
+  mGCPsDirty = true;
 
   mCanvas->refresh();
 }
@@ -195,16 +196,53 @@ void QgsPointDialog::on_pbnLoadGCPs_clicked()
   loadGCPs(fileName);
 }
 
+void QgsPointDialog::createGCPVectors(std::vector<QgsPoint> &mapCoords, std::vector<QgsPoint> &pixelCoords) const
+{
+  mapCoords   = std::vector<QgsPoint>(mPoints.size());
+  pixelCoords = std::vector<QgsPoint>(mPoints.size());
+  for (unsigned int i = 0; i < mPoints.size(); i++)
+  {
+    QgsGeorefDataPoint* pt = mPoints[i];
+    mapCoords[i] = pt->mapCoords();
+    pixelCoords[i] = pt->pixelCoords();
+  }
+}
+
+QgsGeorefTransform::TransformParametrisation QgsPointDialog::convertTransformStringToEnum(const QString &transformName) const throw(std::invalid_argument)
+{
+  if (transformName == tr("Linear"))
+  {
+    return QgsGeorefTransform::Linear;
+  }
+  else if (transformName == tr("Helmert"))
+  {
+    return QgsGeorefTransform::Helmert;
+  }
+  else if (transformName == tr("Polynomial 1"))
+  {
+    return QgsGeorefTransform::PolynomialOrder1;
+  }
+  else if (transformName == tr("Polynomial 2"))
+  {
+    return QgsGeorefTransform::PolynomialOrder2;
+  }
+  else if (transformName == tr("Polynomial 3"))
+  {
+    return QgsGeorefTransform::PolynomialOrder3;
+  }
+  else if (transformName == tr("Thin plate spline (TPS)"))
+  {
+    return QgsGeorefTransform::ThinPlateSpline;
+  }
+  else 
+    throw std::invalid_argument((transformName+" does not match a known transform type.").toStdString());
+}
+
 void QgsPointDialog::on_pbnSaveGCPs_clicked()
 {
 	// create arrays with points from mPoints
-	std::vector<QgsPoint> pixelCoords, mapCoords;
-	for ( unsigned int i = 0; i < mPoints.size(); i++ )
-	{
-		QgsGeorefDataPoint* pt = mPoints[i];
-		pixelCoords.push_back( pt->pixelCoords() );
-		mapCoords.push_back( pt->mapCoords() );
-	}
+  std::vector<QgsPoint> mapCoords, pixelCoords;
+  createGCPVectors(mapCoords, pixelCoords);
 	saveGCPs( mapCoords, pixelCoords );
 }
 
@@ -267,7 +305,36 @@ void QgsPointDialog::on_cmbTransformType_currentIndexChanged( const QString& val
       leSelectWorldFile->setText( guessWorldFileName( fileName ) );
       }
   }
+
+  QgsGeorefTransform::TransformParametrisation parametrisation;
+  try 
+  {
+    parametrisation = convertTransformStringToEnum(cmbTransformType->currentText());
+  }
+  catch (std::exception &arg) 
+  {
+    QMessageBox::critical( this, tr( "Error" ), QString( arg.what() ) );
+    return;
+  }
+  mGeorefTransform.selectTransformParametrisation(parametrisation);
 }
+
+void QgsPointDialog::onLinkGeorefToQgisChanged(int state)
+{
+  if (state)
+  {
+    extentsChangedMainCanvas();
+  }
+}
+
+void QgsPointDialog::onLinkQgisToGeorefChanged(int state)
+{
+  if (state)
+  {
+      extentsChangedGeorefCanvas();
+  }
+}
+
 
 
 bool QgsPointDialog::generateWorldFileAndWarp()
@@ -540,6 +607,7 @@ void QgsPointDialog::loadGCPs(QString &fileName)
       points >> mapX >> mapY >> pixelX >> pixelY;
     }
   }
+  mGCPsDirty = true;
   mCanvas->refresh();
 }
 
@@ -721,6 +789,8 @@ void QgsPointDialog::deleteDataPoint( QgsPoint& coords )
       delete *it;
       mPoints.erase( it );
       --mAcetateCounter;
+      mGCPsDirty = true;
+
       mCanvas->refresh();
       break;
     }
@@ -836,11 +906,138 @@ void QgsPointDialog::initialize()
   cmbTransformType->addItem( tr( "Polynomial 3" ) );
   cmbTransformType->addItem( tr( "Thin plate spline (TPS)" ) );
 
+
+  // Connect main canvas and georef canvas signals so we are aware if any of the viewports change
+  // (used by the map follow mode)
+  connect( mCanvas, SIGNAL( extentsChanged() ), this, SLOT( extentsChangedGeorefCanvas() ) );
+  connect( mIface->mapCanvas(), SIGNAL( extentsChanged() ), this, SLOT( extentsChangedMainCanvas() ) );
+
+  connect( cbLinkQgisToGeoref, SIGNAL( stateChanged( int )), this, SLOT( onLinkQgisToGeorefChanged( int ) ));
+  connect( cbLinkGeorefToQgis, SIGNAL( stateChanged( int )), this, SLOT( onLinkGeorefToQgisChanged( int ) ));
+
+  mExtentsChangedRecursionGuard = false;
+
+  mGeorefTransform.selectTransformParametrisation(QgsGeorefTransform::Linear);
+  mGCPsDirty = true;
+
   enableModifiedRasterControls( false );
   addPoint();
 
   pbnGenerateAndLoad->setEnabled( false );
 }
+
+bool QgsPointDialog::updateGeorefTransform()
+{
+  if (mGCPsDirty || !mGeorefTransform.parametersInitialized()) 
+  {
+    // Store gcp source and destination coordinates in vectors
+    std::vector<QgsPoint> pixelCoords, mapCoords;
+    createGCPVectors(mapCoords, pixelCoords);
+
+    // Parametrize the transform with GCPs
+    if (!mGeorefTransform.updateParametersFromGCPs(mapCoords, pixelCoords))
+    {
+      return false;
+    }
+
+    mGCPsDirty = false;
+  }
+  return true;
+}
+
+// Samples the given rectangle at numSamples per edge.
+// Returns an axis aligned bounding box which contains the transformed samples.
+QgsRectangle transformViewportBoundingBox(const QgsRectangle &canvasExtent, const QgsGeorefTransform &t, bool rasterToWorld = true, uint numSamples = 4)
+{
+  double minX, minY;
+  double maxX, maxY;
+  minX = minY =  std::numeric_limits<double>::max();
+  maxX = maxY = -std::numeric_limits<double>::max();
+
+  double oX = canvasExtent.xMinimum();
+  double oY = canvasExtent.yMinimum();
+  double dX = canvasExtent.xMaximum();
+  double dY = canvasExtent.yMaximum();
+  double stepX = numSamples ? (dX-oX)/(numSamples-1) : 0.0;  
+  double stepY = numSamples ? (dY-oY)/(numSamples-1) : 0.0;  
+  for (uint s = 0u;  s < numSamples; s++)
+  {
+    for (uint edge = 0; edge < 4; edge++) {
+      QgsPoint src, raster;
+      switch (edge) {
+        case 0: src = QgsPoint(oX + (double)s*stepX, oY); break;
+        case 1: src = QgsPoint(oX + (double)s*stepX, dY); break;
+        case 2: src = QgsPoint(oX, oY + (double)s*stepY); break;
+        case 3: src = QgsPoint(dX, oY + (double)s*stepY); break;
+      }
+      t.transform(src, raster, rasterToWorld);
+      minX = std::min(raster.x(), minX);
+      maxX = std::max(raster.x(), maxX);
+      minY = std::min(raster.y(), minY);
+      maxY = std::max(raster.y(), maxY);
+    }
+  }
+  return QgsRectangle(minX, minY, maxX, maxY);
+}
+
+// This slot is called whenever the georeference canvas changes the displayed extent
+void QgsPointDialog::extentsChangedGeorefCanvas()
+{
+  // Guard against endless recursion by ping-pong updates
+  if (mExtentsChangedRecursionGuard) 
+  {
+    return;
+  }
+
+  if (cbLinkQgisToGeoref->isChecked()) 
+  {
+    if (!updateGeorefTransform()) 
+    {
+      return;
+    }
+
+    // Reproject the georeference plugin canvas into world coordinates and fit axis aligned bounding box
+    QgsRectangle boundingBox = transformViewportBoundingBox(mCanvas->extent(), mGeorefTransform, true);
+
+    mExtentsChangedRecursionGuard = true;
+    // Just set the whole extent for now
+    // TODO: better fitting function which acounts for differing aspect ratios etc.
+    mIface->mapCanvas()->setExtent(boundingBox);
+    mIface->mapCanvas()->refresh();
+    mExtentsChangedRecursionGuard = false;   
+  }
+}
+
+// This slot is called whenever the qgis main canvas changes the displayed extent
+void QgsPointDialog::extentsChangedMainCanvas()
+{
+  // Guard against endless recursion by ping-pong updates
+  if (mExtentsChangedRecursionGuard) 
+  {
+    return;
+  }
+
+  if (cbLinkGeorefToQgis->isChecked()) 
+  {
+    // Update transform if necessary
+    if (!updateGeorefTransform())
+    { 
+      return;
+    }
+
+    // Reproject the canvas into raster coordinates and fit axis aligned bounding box
+    QgsRectangle boundingBox = transformViewportBoundingBox(mIface->mapCanvas()->extent(), mGeorefTransform, false);
+    
+    mExtentsChangedRecursionGuard = true;
+    // Just set the whole extent for now
+    // TODO: better fitting function which acounts for differing aspect ratios etc.
+    mCanvas->setExtent(boundingBox);
+    mCanvas->refresh();
+    mExtentsChangedRecursionGuard = false;
+  }
+}
+
+
 
 // Note this code is duplicated from qgisapp.cpp because
 // I didnt want to make plugins on qgsapplication [TS]

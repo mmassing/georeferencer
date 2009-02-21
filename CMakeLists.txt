@@ -9,6 +9,7 @@ SET (GEOREF_SRCS
      qgspointdialog.cpp
      qgsgeorefdescriptiondialog.cpp
      qgsgeorefwarpoptionsdialog.cpp
+     qgsgeoreftransform.cpp
      mapcoordsdialog.cpp
 )
 
