@@ -122,6 +122,11 @@ public:
    * \note Negative y-axis points down in raster CS.
    */
   bool transform(const QgsPoint &src, QgsPoint &dst, bool rasterToWorld) const;
+
+  /**
+   * Returns origin and scale if this is a linear transform, fails otherwise.
+   */
+  bool getLinearOriginScale(QgsPoint &origin, double &scaleX, double &scaleY) const;
 private:
   // shallow copy constructor
   QgsGeorefTransform(const QgsGeorefTransform &other);

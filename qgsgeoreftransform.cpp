@@ -38,7 +38,8 @@ class QgsLinearGeorefTransform : public QgsGeorefTransformInterface {
 public:
   QgsLinearGeorefTransform()  { }
   ~QgsLinearGeorefTransform() { }
-  
+
+  bool getOriginScale(QgsPoint &origin, double &scaleX, double &scaleY) const;
 
   bool updateParametersFromGCPs(const std::vector<QgsPoint> &mapCoords, const std::vector<QgsPoint> &pixelCoords);
   uint getMinimumGCPCount() const;
@@ -50,7 +51,6 @@ private:
     QgsPoint origin;
     double scaleX, scaleY;
   } mParameters;
-  //LinearParameters mParameters;
 
   static int linear_transform( void *pTransformerArg, int bDstToSrc, int nPointCount, 
                                double *x, double *y, double *z, int *panSuccess );
@@ -227,6 +227,19 @@ bool QgsGeorefTransform::transform(const QgsPoint &src, QgsPoint &dst, bool rast
   return rasterToWorld ? transformRasterToWorld(src, dst) : transformWorldToRaster(src, dst);
 }
 
+bool QgsGeorefTransform::getLinearOriginScale(QgsPoint &origin, double &scaleX, double &scaleY) const
+{
+  if (transformParametrisation() != Linear)
+  {
+    return false;
+  }
+  if (!mGeorefTransformImplementation || !parametersInitialized())
+  {
+    return false;
+  }
+  return dynamic_cast<QgsLinearGeorefTransform *>(mGeorefTransformImplementation)->getOriginScale(origin, scaleX, scaleY);
+}
+
 
 bool QgsGeorefTransform::gdal_transform(const QgsPoint &src, QgsPoint &dst, int dstToSrc) const
 {
@@ -247,6 +260,15 @@ bool QgsGeorefTransform::gdal_transform(const QgsPoint &src, QgsPoint &dst, int 
 
   dst.setX(x);
   dst.setY(y);
+  return true;
+}
+
+
+bool QgsLinearGeorefTransform::getOriginScale(QgsPoint &origin, double &scaleX, double &scaleY) const
+{
+  origin = mParameters.origin;
+  scaleX = mParameters.scaleX;
+  scaleY = mParameters.scaleY;
   return true;
 }
 

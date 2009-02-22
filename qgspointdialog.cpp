@@ -340,39 +340,6 @@ bool QgsPointDialog::generateWorldFileAndWarp()
   QString outputFileName = leSelectModifiedRaster->text();
   QString worldFileName = leSelectWorldFile->text();
 
-  if ( !outputFileName.isEmpty() )
-  {
-    if ( QFile::exists( outputFileName ) )
-    {
-      int r = QMessageBox::question( this, tr( "Error!" ),
-                                     tr( "<p>Modified raster file exists! Overwrite it?</p>" ),
-                                     QMessageBox::Yes | QMessageBox::Default,
-                                     QMessageBox::No | QMessageBox::Escape );
-      if ( r == QMessageBox::No )
-        return false;
-      else
-        QFile::remove( outputFileName );
-    }
-  }
-
-  if ( !worldFileName.isEmpty() )
-  {
-    if ( QFile::exists( worldFileName ) )
-    {
-      int r = QMessageBox::question( this, tr( "World file exists" ),
-                                     tr( "<p>The selected file already seems to have a " ) +
-                                     tr( "world file! Do you want to replace it with the " ) +
-                                     tr( "new world file?</p>" ),
-                                     QMessageBox::Yes | QMessageBox::Default,
-                                     QMessageBox::No | QMessageBox::Escape );
-      if ( r == QMessageBox::No )
-        return false;
-      else
-        QFile::remove( worldFileName );
-    }
-  }
-
-
   // create arrays with points from mPoints
   std::vector<QgsPoint> pixelCoords, mapCoords;
   createGCPVectors(mapCoords, pixelCoords);
@@ -391,11 +358,38 @@ bool QgsPointDialog::generateWorldFileAndWarp()
   
   if (mGeorefTransform.transformParametrisation() == QgsGeorefTransform::Linear)
   {
-    //TODO: resurect world file generation. Need to expose linear parameters in QgsGeorefTransform
-    #if 0
-    QgsPoint origin( 0, 0 );
-    double pixelXSize = 1;
-    double pixelYSize = 1;
+    QgsPoint origin;
+    double pixelXSize, pixelYSize;
+    if (!mGeorefTransform.getLinearOriginScale(origin, pixelXSize, pixelYSize))
+    {
+    
+      QMessageBox::critical( this, tr( "Error" ),
+                             tr( "Failed to get linear transform parameters." ));
+      return false;
+    }
+
+    if ( !worldFileName.isEmpty() )
+    {
+      if ( QFile::exists( worldFileName ) )
+      {
+        int r = QMessageBox::question( this, tr( "World file exists" ),
+                                      tr( "<p>The selected file already seems to have a " ) +
+                                      tr( "world file! Do you want to replace it with the " ) +
+                                      tr( "new world file?</p>" ),
+                                      QMessageBox::Yes | QMessageBox::Default,
+                                      QMessageBox::No | QMessageBox::Escape );
+        if ( r == QMessageBox::No )
+          return false;
+        else
+          QFile::remove( worldFileName );
+      }
+    }
+    else {
+      QMessageBox::critical( this, tr( "Error!" ),
+                             tr( "<p>Please enter an output filename.</p>" )); 
+      return false;
+    }
+
     
     // write the world file
     QFile file( worldFileName );
@@ -410,22 +404,41 @@ bool QgsPointDialog::generateWorldFileAndWarp()
            << 0 << endl
            << 0 << endl
            << QString::number( -pixelYSize, 'f', 15 ) << endl
-           << QString::number(( origin.x() - xOffset * pixelXSize ), 'f', 15 ) << endl
-           << QString::number(( origin.y() + yOffset * pixelYSize ), 'f', 15 ) << endl;
-    #endif
+           << QString::number(  origin.x(), 'f', 15 ) << endl
+           << QString::number(  origin.y(), 'f', 15 ) << endl;
   }
   else 
   {
     QMessageBox::StandardButton res = QMessageBox::warning( this, tr( "Warning" ),
-                                        tr( "<p>The %1 transform requires modifications in "
+                                        tr( "<p>A %1 transform requires modifications in "
                                             "the raster layer.</p><p>The modified raster will be "
                                             "saved in a new file and a world file will be "
                                             "generated for this new file instead.</p><p>Are you "
-                                            "sure that this is what you want?</p>" ).arg( +
+                                            "sure that this is what you want?</p>" ).arg("polynomial") +
                                         "<p><i>" + tr( "Currently all modified files will be written in TIFF format." ) +
                                         "</i><p>", QMessageBox::Ok | QMessageBox::Cancel );
     if ( res == QMessageBox::Cancel )
       return false;
+
+    if ( !outputFileName.isEmpty() )
+    {
+      if ( QFile::exists( outputFileName ) )
+      {
+        int r = QMessageBox::question( this, tr( "Error!" ),
+                                      tr( "<p>Modified raster file exists! Overwrite it?</p>" ),
+                                      QMessageBox::Yes | QMessageBox::Default,
+                                      QMessageBox::No | QMessageBox::Escape );
+        if ( r == QMessageBox::No )
+          return false;
+        else
+          QFile::remove( outputFileName );
+      }
+    }
+    else {
+      QMessageBox::critical( this, tr( "Error!" ),
+                             tr( "<p>Please enter an output filename.</p>" )); 
+      return false;
+    }
 
     bool useZeroForTrans;
     QString compressionMethod;
@@ -443,6 +456,7 @@ bool QgsPointDialog::generateWorldFileAndWarp()
     QgsImageWarper warper;
     if (!warper.warpFile( mLayer->source(), outputFileName, mGeorefTransform, resampling, useZeroForTrans, compressionMethod))
     {
+      //TODO: be more specific in the error message
       QMessageBox::critical( this, tr( "Error" ), tr( "Failed to compute GCP transform: Transform is not solvable." ) );
       return false;
     }
