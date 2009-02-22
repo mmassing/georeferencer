@@ -66,5 +66,5 @@ void QgsGeorefWarpOptionsDialog::on_pbnOK_clicked()
   };
   resampling = methods[cmbResampling->currentIndex()];
   useZeroAsTransparency = cbxZeroAsTrans->isChecked();
-  close();
+  accept();
 }

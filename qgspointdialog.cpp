@@ -335,17 +335,8 @@ void QgsPointDialog::onLinkQgisToGeorefChanged(int state)
   }
 }
 
-
-
 bool QgsPointDialog::generateWorldFileAndWarp()
 {
-  QgsPoint origin( 0, 0 );
-  double pixelXSize = 1;
-  double pixelYSize = 1;
-  double rotation = 0;
-  int nReqOrder = 0;
-  bool bUseTPS = false;
-
   QString outputFileName = leSelectModifiedRaster->text();
   QString worldFileName = leSelectWorldFile->text();
 
@@ -381,213 +372,88 @@ bool QgsPointDialog::generateWorldFileAndWarp()
     }
   }
 
+
   // create arrays with points from mPoints
   std::vector<QgsPoint> pixelCoords, mapCoords;
-  for ( unsigned int i = 0; i < mPoints.size(); i++ )
+  createGCPVectors(mapCoords, pixelCoords);
+  if (mapCoords.size() < mGeorefTransform.getMinimumGCPCount())
   {
-    QgsGeorefDataPoint* pt = mPoints[i];
-    pixelCoords.push_back( pt->pixelCoords() );
-    mapCoords.push_back( pt->mapCoords() );
+    QMessageBox::critical(this, tr("Error"), tr("%1 transform requires at least %2 ground control points").arg(cmbTransformType->currentText()).arg(mGeorefTransform.getMinimumGCPCount()));
+    return false;
   }
-
-  // compute the parameters using the least squares method
-  // (might throw std::domain_error)
   
-try
+  // Update the transform if necessary
+  if (!updateGeorefTransform())
   {
-    if ( cmbTransformType->currentText() == tr( "Linear" ) )
+    QMessageBox::critical( this, tr( "Error" ), tr( "Failed to compute GCP transform: Transform is not solvable." ) );
+    return false;
+  }
+  
+  if (mGeorefTransform.transformParametrisation() == QgsGeorefTransform::Linear)
+  {
+    //TODO: resurect world file generation. Need to expose linear parameters in QgsGeorefTransform
+    #if 0
+    QgsPoint origin( 0, 0 );
+    double pixelXSize = 1;
+    double pixelYSize = 1;
+    
+    // write the world file
+    QFile file( worldFileName );
+    if ( !file.open( QIODevice::WriteOnly ) )
     {
-      QgsLeastSquares::linear( mapCoords, pixelCoords, origin, pixelXSize, pixelYSize );
+      QMessageBox::critical( this, tr( "Error" ),
+                             tr( "Could not write to " ) + worldFileName );
+      return false;
     }
-    else if ( cmbTransformType->currentText() == tr( "Helmert" ) )
-    {
-      QMessageBox::StandardButton res = QMessageBox::warning( this, tr( "Warning" ),
-                                        tr( "<p>A Helmert transform requires modifications in "
+    QTextStream stream( &file );
+    stream << QString::number( pixelXSize, 'f', 15 ) << endl
+           << 0 << endl
+           << 0 << endl
+           << QString::number( -pixelYSize, 'f', 15 ) << endl
+           << QString::number(( origin.x() - xOffset * pixelXSize ), 'f', 15 ) << endl
+           << QString::number(( origin.y() + yOffset * pixelYSize ), 'f', 15 ) << endl;
+    #endif
+  }
+  else 
+  {
+    QMessageBox::StandardButton res = QMessageBox::warning( this, tr( "Warning" ),
+                                        tr( "<p>The %1 transform requires modifications in "
                                             "the raster layer.</p><p>The modified raster will be "
                                             "saved in a new file and a world file will be "
                                             "generated for this new file instead.</p><p>Are you "
-                                            "sure that this is what you want?</p>" ) +
+                                            "sure that this is what you want?</p>" ).arg( +
                                         "<p><i>" + tr( "Currently all modified files will be written in TIFF format." ) +
                                         "</i><p>", QMessageBox::Ok | QMessageBox::Cancel );
-      if ( res == QMessageBox::Cancel )
-        return false;
+    if ( res == QMessageBox::Cancel )
+      return false;
 
-      QgsLeastSquares::helmert( mapCoords, pixelCoords, origin, pixelXSize, rotation );
-      pixelYSize = pixelXSize;
+    bool useZeroForTrans;
+    QString compressionMethod;
+    QgsImageWarper::ResamplingMethod resampling;
 
-    }
-    else if ( cmbTransformType->currentText() == tr( "Affine" ) )
+    QgsGeorefWarpOptionsDialog d( this );   
+    if (!d.exec()) 
     {
-        QMessageBox::critical( this, tr( "Not implemented!" ),
-                             tr( "<p>An affine transform requires changing the "
-                                 "original raster file. This is not yet "
-                                 "supported.</p>" ) );
+      // The options dialog was canceled by the user
       return false;
     }
-    else if (cmbTransformType->currentText() == tr("Polynomial 1"))
+     
+    d.getWarpOptions( resampling, useZeroForTrans, compressionMethod );
+
+    QgsImageWarper warper;
+    if (!warper.warpFile( mLayer->source(), outputFileName, mGeorefTransform, resampling, useZeroForTrans, compressionMethod))
     {
-            QMessageBox::StandardButton res = QMessageBox::warning( this, tr( "Warning" ),
-                        tr( "<p>A Polynomial transform requires changing "
-                        "the raster layer.</p><p>The changed raster will be "
-                        "saved in a new file and a world file will be "
-                        "generated for this new file instead.</p><p>Are you "
-                         "sure that this is what you want?</p>" ) +
-                         "<p><i>" + tr( "Currently all modified files will be written in TIFF format." ) +
-                         "</i><p>", QMessageBox::Ok | QMessageBox::Cancel );
-      if ( res == QMessageBox::Cancel )
-        return false;
-      
-      if (mPoints.size() < 3) {
-            QMessageBox::critical(this, tr("Error"), tr("Requires at least 3 points"));
-            return false;
-      }
-
-      nReqOrder = 1;
-    } 
-    else if (cmbTransformType->currentText() == tr("Polynomial 2"))
-    {
-            QMessageBox::StandardButton res = QMessageBox::warning( this, tr( "Warning" ),
-                        tr( "<p>A Polynomial transform requires changing "
-                        "the raster layer.</p><p>The changed raster will be "
-                        "saved in a new file and a world file will be "
-                        "generated for this new file instead.</p><p>Are you "
-                         "sure that this is what you want?</p>" ) +
-                         "<p><i>" + tr( "Currently all modified files will be written in TIFF format." ) +
-                         "</i><p>", QMessageBox::Ok | QMessageBox::Cancel );
-      if ( res == QMessageBox::Cancel )
-        return false;
-
-      if (mPoints.size() < 6) {
-            QMessageBox::critical(this, tr("Error"), tr("Requires at least 6 points"));
-            return false;
-      }
-
-      nReqOrder = 2;
-    } 
-    else if (cmbTransformType->currentText() == tr("Polynomial 3"))
-    {
-            QMessageBox::StandardButton res = QMessageBox::warning( this, tr( "Warning" ),
-                        tr( "<p>A Polynomial transform requires changing "
-                        "the raster layer.</p><p>The changed raster will be "
-                        "saved in a new file and a world file will be "
-                        "generated for this new file instead.</p><p>Are you "
-                         "sure that this is what you want?</p>" ) +
-                         "<p><i>" + tr( "Currently all modified files will be written in TIFF format." ) +
-                         "</i><p>", QMessageBox::Ok | QMessageBox::Cancel );
-      if ( res == QMessageBox::Cancel )
-        return false;
-
-      if (mPoints.size() < 10) {
-            QMessageBox::critical(this, tr("Error"), tr("Requires at least 10 points"));
-            return false;
-      }
-
-      nReqOrder = 3;
-    }
-    else if (cmbTransformType->currentText() == tr("Thin plate spline (TPS)"))
-    {
-            QMessageBox::StandardButton res = QMessageBox::warning( this, tr( "Warning" ),
-                        tr( "<p>A Polynomial transform requires changing "
-                        "the raster layer.</p><p>The changed raster will be "
-                        "saved in a new file and a world file will be "
-                        "generated for this new file instead.</p><p>Are you "
-                         "sure that this is what you want?</p>" ) +
-                         "<p><i>" + tr( "Currently all modified files will be written in TIFF format." ) +
-                         "</i><p>", QMessageBox::Ok | QMessageBox::Cancel );
-      if ( res == QMessageBox::Cancel )
-        return false;
-
-      bUseTPS = true;
-    } 
- else
-    {
-      QMessageBox::critical( this, tr( "Not implemented!" ),
-                             tr( "<p>The " ) +
-                             cmbTransformType->currentText() +
-                             tr( " transform is not yet supported.</p>" ) );
+      QMessageBox::critical( this, tr( "Error" ), tr( "Failed to compute GCP transform: Transform is not solvable." ) );
       return false;
     }
+    // write the data points in case we need them later
+//     saveGCPs( mapCoords, pixelCoords );
   }
-  catch ( std::domain_error& e )
-  {
-    QMessageBox::critical( this, tr( "Error" ), QString( e.what() ) );
-    return false;
-  }
-
-      bool useZeroForTrans;
-      QString compressionMethod;
-      QgsImageWarper::ResamplingMethod resampling;
-
-      if ( rotation != 0 ) {
-            // warp the raster if needed
-            double xOffset = 0;
-            double yOffset = 0;
-
-            QgsGeorefWarpOptionsDialog d( this );
-//	    d.move(0, 0);
-            d.exec();
-            QgsImageWarper warper( -rotation );
-            d.getWarpOptions( resampling, useZeroForTrans, compressionMethod );
-            //Closing the dialog by pressing the X button rather than clicking the OK button causes GDAL to barf and QGIS
-            //to crash because reasampling is not a valid option
-            //**not sure exactly what is going on in the case as the other two options are still correct but that could be coincidence
-            if ( resampling != QgsImageWarper::NearestNeighbour && resampling != QgsImageWarper::Bilinear && resampling != QgsImageWarper::Cubic )
-            {
-                  return false;
-            }
-            warper.warp( mLayer->source(), outputFileName,
-                       xOffset, yOffset, resampling, useZeroForTrans, compressionMethod );
-
-            // write the world file
-            QFile file( worldFileName );
-            if ( !file.open( QIODevice::WriteOnly ) )
-            {
-            QMessageBox::critical( this, tr( "Error" ),
-                                 tr( "Could not write to " ) + worldFileName );
-            return false;
-            }
-            QTextStream stream( &file );
-            stream << QString::number( pixelXSize, 'f', 15 ) << endl
-            << 0 << endl
-            << 0 << endl
-            << QString::number( -pixelYSize, 'f', 15 ) << endl
-            << QString::number(( origin.x() - xOffset * pixelXSize ), 'f', 15 ) << endl
-            << QString::number(( origin.y() + yOffset * pixelYSize ), 'f', 15 ) << endl;
-      }
-      else if (nReqOrder != 0 || bUseTPS)
-      {
-            QgsGeorefWarpOptionsDialog d( this );
-//	    d.move(0, 0);
-            d.exec();
-            QgsImageWarper warper;
-            d.getWarpOptions( resampling, useZeroForTrans, compressionMethod );
-            //Closing the dialog by pressing the X button rather than clicking the OK button causes GDAL to barf and QGIS
-            //to crash because reasampling is not a valid option
-            //**not sure exactly what is going on in the case as the other two options are still correct but that could be coincidence
-            if ( resampling != QgsImageWarper::NearestNeighbour && resampling != QgsImageWarper::Bilinear && resampling != QgsImageWarper::Cubic )
-            {
-                  return false;
-            }
-
-            QByteArray worldExt = worldFileName.mid(worldFileName.lastIndexOf('.') + 1, worldFileName.length()).toAscii();
-
-            if (!warper.warpgcp(mLayer->source(), outputFileName, worldExt.data(),
-                           mapCoords, pixelCoords, nReqOrder, resampling, useZeroForTrans,
-                           compressionMethod, bUseTPS))
-			{
-				QMessageBox::critical( this, tr( "Error" ), tr( "Failed to compute GCP transform: Transform is not solvable." ) );
-				return false;
-			}
-      }
-
-	// write the data points in case we need them later
-//  saveGCPs( mapCoords, pixelCoords );
   return true;
 }
 
 void QgsPointDialog::loadGCPs(QString &fileName)
 {
- 
   QFile pointFile( fileName );
   if ( pointFile.open( QIODevice::ReadOnly ) )
   {
