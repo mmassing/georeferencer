@@ -585,27 +585,6 @@ void QgsPointDialog::on_pbnSelectRaster_clicked()
                        fileInfo.path() );
   }
 
-  // guess the world file name
-  QString worldfile = guessWorldFileName(leSelectRaster->text());
-  
-  // check if there already is a world file
-  if ( !worldfile.isEmpty() )
-  {
-    if ( QFile::exists( worldfile ) )
-    {
-      int r = QMessageBox::question( this, tr( "World file exists" ),
-                                     tr( "<p>The selected file already seems to have a " ) +
-                                     tr( "world file! Do you want to replace it with the " ) +
-                                     tr( "new world file?</p>" ),
-                                     QMessageBox::Yes | QMessageBox::Default,
-                                     QMessageBox::No | QMessageBox::Escape );
-      if ( r == QMessageBox::No )
-        return;
-      else
-        QFile::remove( worldfile );
-    }
-  }
-
   // XXX This is horrible, but it works and I'm tired / ll
   {
     QSettings settings;
