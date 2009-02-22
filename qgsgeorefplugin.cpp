@@ -45,7 +45,7 @@
 #include <qgisinterface.h>
 #include <qgsmaplayer.h>
 #include <qgsrasterlayer.h>
-#include "plugin.h"
+#include "qgsgeorefplugin.h"
 
 //
 //the gui subclass
@@ -98,14 +98,14 @@ void QgsGeorefPlugin::initGui()
   mQGisIface->addToolBarIcon( mQActionPointer );
   mQGisIface->addPluginToMenu( tr( "&Georeferencer" ), mQActionPointer );
 
-  mQActionPointerAbout = new QAction( QIcon( ":/about.png" ), tr( "&Georeferencer" ), this );
+  mQActionPointerAbout = new QAction( QIcon( ":/about.png" ), tr( "&About" ), this );
 //  mQActionPointer = new QAction("About", this);
-  connect(mQActionPointerAbout, SIGNAL(triggered()), SLOT(about()));
+  connect(mQActionPointerAbout, SIGNAL(triggered()), this, SLOT(about()));
   mQGisIface->addPluginToMenu(tr ("&Georeferencer"), mQActionPointerAbout);
 
-  mQActionPointerHelp = new QAction( QIcon( ":/help.png" ), tr( "&Georeferencer" ), this );
+  mQActionPointerHelp = new QAction( QIcon( ":/help.png" ), tr( "&Help" ), this );
  //  mQActionPointer = new QAction("Help", this);
-  connect(mQActionPointerHelp, SIGNAL(triggered()), SLOT(help()));
+  connect(mQActionPointerHelp, SIGNAL(triggered()), this, SLOT(help()));
   mQGisIface->addPluginToMenu(tr ("&Georeferencer"), mQActionPointerHelp);
 }
 //method defined in interface
@@ -151,11 +151,17 @@ void QgsGeorefPlugin::run()
 void QgsGeorefPlugin::unload()
 {
   // remove the GUI
+  disconnect( mQActionPointer, SIGNAL( triggered() ), this, SLOT( run() ) );
+  disconnect(mQActionPointerAbout, SIGNAL(triggered()), this, SLOT(about()));
+  disconnect(mQActionPointerHelp, SIGNAL(triggered()), this, SLOT(help()));
   mQGisIface->removePluginMenu( tr( "&Georeferencer" ), mQActionPointer );
-  mQGisIface->removePluginMenu( tr( "&Georeferencer" ), mQActionPointerAbout );
-  mQGisIface->removePluginMenu( tr( "&Georeferencer" ), mQActionPointerHelp );
+  mQGisIface->removePluginMenu( tr( "&About" ), mQActionPointerAbout );
+  mQGisIface->removePluginMenu( tr( "&Help" ), mQActionPointerHelp );
   mQGisIface->removeToolBarIcon( mQActionPointer );
+
   delete mQActionPointer;
+  delete mQActionPointerAbout;
+  delete mQActionPointerHelp;
 }
 
 //////////////////////////////////////////////////////////////////////

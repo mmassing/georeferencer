@@ -20,4 +20,13 @@
 QgsGeorefDescriptionDialog::QgsGeorefDescriptionDialog( QWidget* parent ): QDialog( parent )
 {
   setupUi( this );
+
+  textEdit->setText("<p>Description</p>"
+          "<p>This plugin can generate world files"
+          "for rasters. You select points on the"
+          "raster and give their world"
+          "coordinates, and the plugin will"
+          "computer the world file parameters."
+          "The more coordinates you can"
+          "provide the better the result will be.</p>");
 }

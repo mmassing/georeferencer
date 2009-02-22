@@ -21,10 +21,10 @@
 
 MapCoordsDialog::MapCoordsDialog()
 {
-      // setWindowFlags(!Qt::Dialog);
-      setWindowFlags(Qt::WindowSystemMenuHint);
-      setWindowFlags(Qt::WindowMinimizeButtonHint);
-      setWindowFlags(Qt::WindowMaximizeButtonHint);
+      this->setWindowFlags(!Qt::Dialog);
+      this->setWindowFlags(Qt::WindowSystemMenuHint);
+      this->setWindowFlags(Qt::WindowMinimizeButtonHint);
+      this->setWindowFlags(Qt::WindowMaximizeButtonHint);
 }
 
 

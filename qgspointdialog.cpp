@@ -136,7 +136,7 @@ void QgsPointDialog::openImageFile( QString layerPath )
   // load previously added points
   QString gcpsPath( layerPath + ".points");
   loadGCPs( gcpsPath );
-  
+
   mCanvas->setExtent( mLayer->extent() );
   mCanvas->freeze( false );
 
@@ -144,6 +144,8 @@ void QgsPointDialog::openImageFile( QString layerPath )
   pbnGenerateWorldFile->setEnabled( true );
   pbnGenerateAndLoad->setEnabled( true );
   mCanvas->refresh();
+
+  enableControls(true);
 }
 
 void QgsPointDialog::addPoint( const QgsPoint& pixelCoords, const QgsPoint& mapCoords )
@@ -159,6 +161,7 @@ void QgsPointDialog::addPoint( const QgsPoint& pixelCoords, const QgsPoint& mapC
 void QgsPointDialog::on_leSelectModifiedRaster_textChanged(const QString &name)
 {
   leSelectWorldFile->setText(guessWorldFileName(name));
+//  if (name.length() == 0) enableControls(false);
 }
 
 void QgsPointDialog::on_pbnSelectWorldFile_clicked()
@@ -199,6 +202,7 @@ void QgsPointDialog::on_pbnSaveGCPs_clicked()
 {
 	// create arrays with points from mPoints
 	std::vector<QgsPoint> pixelCoords, mapCoords;
+	if ( mPoints.empty() ) return;
 	for ( unsigned int i = 0; i < mPoints.size(); i++ )
 	{
 		QgsGeorefDataPoint* pt = mPoints[i];
@@ -215,14 +219,15 @@ void QgsPointDialog::on_pbnGenerateAndLoad_clicked()
     QString source = mLayer->source();
 
     // delete layer before it's loaded again (otherwise it segfaults)
-    QgsMapLayerRegistry::instance()->removeMapLayer( mLayer->getLayerID(), FALSE );
-    mLayer = 0;
+//     QgsMapLayerRegistry::instance()->removeMapLayer( mLayer->getLayerID(), FALSE );
+ //    mLayer = 0;
 
     // load raster to the main map canvas of QGIS
     if ( cmbTransformType->currentText() == tr( "Linear" ) )
-      mIface->addRasterLayer( source );
+       mIface->mapCanvas()->setExtent(mIface->addRasterLayer( source )->extent());
     else
-      mIface->addRasterLayer( leSelectModifiedRaster->text() );
+       mIface->mapCanvas()->setExtent(mIface->addRasterLayer( leSelectModifiedRaster->text() )->extent());
+    mIface->mapCanvas()->refresh();
   }
 }
 
@@ -302,9 +307,9 @@ bool QgsPointDialog::generateWorldFileAndWarp()
     if ( QFile::exists( worldFileName ) )
     {
       int r = QMessageBox::question( this, tr( "World file exists" ),
-                                     tr( "<p>The selected file already seems to have a " ) +
-                                     tr( "world file! Do you want to replace it with the " ) +
-                                     tr( "new world file?</p>" ),
+                                     tr( "<p>The selected file already seems to have a "
+                                     "world file! Do you want to replace it with the "
+                                     "new world file?</p>" ),
                                      QMessageBox::Yes | QMessageBox::Default,
                                      QMessageBox::No | QMessageBox::Escape );
       if ( r == QMessageBox::No )
@@ -435,15 +440,14 @@ try
  else
     {
       QMessageBox::critical( this, tr( "Not implemented!" ),
-                             tr( "<p>The " ) +
-                             cmbTransformType->currentText() +
-                             tr( " transform is not yet supported.</p>" ) );
+                             tr( "<p>The %1 transform is not yet supported.</p>" )
+							 .arg( cmbTransformType->currentText() ) );
       return false;
     }
   }
   catch ( std::domain_error& e )
   {
-    QMessageBox::critical( this, tr( "Error" ), QString( e.what() ) );
+    QMessageBox::critical( this, tr( "Error" ), e.what() );
     return false;
   }
 
@@ -476,7 +480,7 @@ try
             if ( !file.open( QIODevice::WriteOnly ) )
             {
             QMessageBox::critical( this, tr( "Error" ),
-                                 tr( "Could not write to " ) + worldFileName );
+                                 tr( "Could not write to %1" ).arg( worldFileName ) );
             return false;
             }
             QTextStream stream( &file );
@@ -617,6 +621,8 @@ void QgsPointDialog::on_pbnSelectRaster_clicked()
 
   if ( fileName.isNull() )
   {
+	leSelectRaster->setText("");
+	enableControls(false);
     return;
   }
   leSelectRaster->setText( fileName );
@@ -626,6 +632,8 @@ void QgsPointDialog::on_pbnSelectRaster_clicked()
   {
     QMessageBox::critical( this, tr( "Error" ),
                            tr( "The selected file is not a valid raster file." ) );
+	leSelectRaster->setText("");
+	enableControls(false);
     return;
   }
 
@@ -651,8 +659,11 @@ void QgsPointDialog::on_pbnSelectRaster_clicked()
                                      tr( "new world file?</p>" ),
                                      QMessageBox::Yes | QMessageBox::Default,
                                      QMessageBox::No | QMessageBox::Escape );
-      if ( r == QMessageBox::No )
+      if ( r == QMessageBox::No ) {
+		leSelectRaster->setText("");
+		enableControls(false);
         return;
+	  }
       else
         QFile::remove( worldfile );
     }
@@ -733,7 +744,7 @@ QString QgsPointDialog::guessWorldFileName( const QString& raster )
   int point = raster.lastIndexOf( '.' );
   QString worldfile = "";
   if ( point != -1 && point != raster.length() - 1 )
-      worldfile = raster.left( point + 1) + "wld";
+      worldfile = raster.left( point + 2) + raster[raster.length() - 1] + "w";
   return worldfile;
 }
 
@@ -742,6 +753,18 @@ void QgsPointDialog::enableModifiedRasterControls( bool state )
   lblSelectModifiedRaster->setEnabled( state );
   pbnSelectModifiedRaster->setEnabled( state );
   leSelectModifiedRaster->setEnabled( state );
+}
+
+void QgsPointDialog::enableControls(bool state)
+{
+  lblSelectWorldFile->setEnabled(state);
+  leSelectWorldFile->setEnabled( state );
+  pbnSelectWorldFile->setEnabled( state );
+
+  pbnGenerateWorldFile->setEnabled(state);
+  pbnGenerateAndLoad->setEnabled( state );
+  pbnLoadGCPs->setEnabled(state);
+  pbnSaveGCPs->setEnabled(state);
 }
 
 void QgsPointDialog::initialize()
@@ -837,9 +860,8 @@ void QgsPointDialog::initialize()
   cmbTransformType->addItem( tr( "Thin plate spline (TPS)" ) );
 
   enableModifiedRasterControls( false );
+  enableControls(false);
   addPoint();
-
-  pbnGenerateAndLoad->setEnabled( false );
 }
 
 // Note this code is duplicated from qgisapp.cpp because
