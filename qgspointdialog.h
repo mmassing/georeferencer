@@ -20,6 +20,8 @@
 #include <qgsmapcanvas.h>
 #include <qgsrasterlayer.h>
 
+#include "qgsgeoreftransform.h"
+
 #include <ui_qgspointdialogbase.h>
 
 class QAction;
@@ -28,6 +30,7 @@ class QIcon;
 class QgsGeorefDataPoint;
 class QgsMapTool;
 class QgisInterface;
+
 
 class QgsPointDialog : public QDialog, private Ui::QgsPointDialogBase
 {
@@ -58,12 +61,18 @@ class QgsPointDialog : public QDialog, private Ui::QgsPointDialogBase
     void on_pbnLoadGCPs_clicked();
     void on_cmbTransformType_currentIndexChanged( const QString& );
     void on_leSelectModifiedRaster_textChanged(const QString &);
+
     void zoomIn();
     void zoomOut();
     void zoomToLayer();
     void pan();
     void addPoint();
     void deletePoint();
+
+    void onLinkQgisToGeorefChanged( int ); // Called when the checkbox state changes
+    void onLinkGeorefToQgisChanged( int ); // Called when the checkbox state changes
+    void extentsChangedGeorefCanvas(); // Called when the georef canvas extents have changed. Used by map follow mode.
+    void extentsChangedMainCanvas();   // Called when the qgis main canvas extents have changed. Used by map follow mode.
 //    void enableRelevantControls( void );
 
   private:
@@ -71,13 +80,25 @@ class QgsPointDialog : public QDialog, private Ui::QgsPointDialogBase
     void initialize();
     bool generateWorldFileAndWarp();
     bool helmertWarp();
-	void loadGCPs(QString &);
+    void loadGCPs(QString &);
     void saveGCPs( std::vector<QgsPoint>, std::vector<QgsPoint> );
     QString guessWorldFileName( const QString& raster );
 
     void enableModifiedRasterControls( bool state );
     void enableControls(bool state);
     QIcon getThemeIcon( const QString theName );
+
+    // The transformer used to align the qgis main canvas and the georeferencer canvas (and/or vice versa)
+    QgsGeorefTransform mGeorefTransform;
+    bool mGCPsDirty;          // GCPs changed since last transform update
+
+    bool mExtentsChangedRecursionGuard;
+
+    void createGCPVectors(std::vector<QgsPoint> &mapCoords, std::vector<QgsPoint> &pixelCoords) const;
+    bool updateGeorefTransform();
+
+    // Converts the given transform name to enum
+    QgsGeorefTransform::TransformParametrisation convertTransformStringToEnum(const QString &transformName) const throw (std::invalid_argument);
 
     QActionGroup* mMapToolGroup;
     QAction* mActionZoomIn;
