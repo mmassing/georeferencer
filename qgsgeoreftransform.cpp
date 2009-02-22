@@ -267,31 +267,40 @@ int QgsLinearGeorefTransform::linear_transform( void *pTransformerArg, int bDstT
                                                 double *x, double *y, double *z, int *panSuccess )
 {
   LinearParameters* t = static_cast<LinearParameters*>( pTransformerArg );
-  assert(t);
-  
-  std::cout<<"linear parameters: origin "<<t->origin<<", scaleX: "<<t->scaleX<<", scaleY: "<<t->scaleY<<std::endl;
- 
-  for ( int i = 0; i < nPointCount; ++i )
+  if (t == NULL)
   {
-    if ( bDstToSrc == FALSE )
+    return FALSE;
+  }
+  
+  if ( bDstToSrc == FALSE )
+  {
+    for ( int i = 0; i < nPointCount; ++i )
     {
           x[i] = x[i]*t->scaleX + t->origin.x();
           y[i] = -y[i]*t->scaleY + t->origin.y();
+          panSuccess[i] = TRUE;
     }
-    else
+  }
+  else
+  {
+    // Guard against division by zero
+    if (abs(t->scaleX) < std::numeric_limits<double>::epsilon() ||
+        abs(t->scaleY) < std::numeric_limits<double>::epsilon()) 
     {
-      // Guard against division by zero
-      if (abs(t->scaleX) < std::numeric_limits<double>::epsilon() ||
-          abs(t->scaleY) < std::numeric_limits<double>::epsilon()) 
+      for ( int i = 0; i < nPointCount; ++i )
       {
         panSuccess[i] = FALSE;
-        continue;
       }
+      return FALSE;
+    }
+    for ( int i = 0; i < nPointCount; ++i )
+    {
       x[i] = (x[i] - t->origin.x())/t->scaleX;
       y[i] = (y[i] - t->origin.y())/(-t->scaleY);
+      panSuccess[i] = TRUE;
     }
-    panSuccess[i] = TRUE;
   }
+  
   return TRUE;
 }
 
@@ -325,6 +334,10 @@ int QgsHelmertGeorefTransform::helmert_transform( void *pTransformerArg, int bDs
                                                   double *x, double *y, double *z, int *panSuccess   )
 {
   HelmertParameters* t = static_cast<HelmertParameters*>( pTransformerArg );
+  if (t == NULL)
+  {
+    return FALSE;
+  }
 
   double a = cos( t->angle ), b = sin( t->angle ), x0 = t->origin.x(), y0 = t->origin.y(), s = t->scale;
   if ( bDstToSrc == FALSE )
@@ -352,7 +365,7 @@ int QgsHelmertGeorefTransform::helmert_transform( void *pTransformerArg, int bDs
       {
         panSuccess[i] = FALSE;
       }
-      return TRUE; // seems to be a gdal convention to always return TRUE
+      return FALSE;
     }
     a/= s;
     b/= s;
