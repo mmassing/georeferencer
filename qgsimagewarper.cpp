@@ -79,7 +79,6 @@ bool QgsImageWarper::createDestinationDataset(const QString &outputName, GDALDat
 
   if (CE_None != GDALSetGeoTransform(hDstDS, adfGeoTransform))
   {
-    std::cout<<"Setting geotransform failed!"<<std::endl;
     return false;
   }
 
@@ -153,6 +152,8 @@ bool QgsImageWarper::warpFile( const QString& input, const QString& output, cons
   GDALWarpOperation oOperation;
   oOperation.Initialize( psWarpOptions );
   eErr = oOperation.ChunkAndWarpImage(0, 0, destPixels, destLines);
+
+  destroyGeoToPixelTransform(psWarpOptions->pTransformerArg);
   GDALDestroyWarpOptions( psWarpOptions );
 
   GDALClose( hSrcDS );
@@ -165,7 +166,7 @@ bool QgsImageWarper::warpFile( const QString& input, const QString& output, cons
 }
 
 
-void *QgsImageWarper::addGeoToPixelTransform(GDALTransformerFunc GDALTransformer, void *GDALTransformerArg, double *padfGeotransform)
+void *QgsImageWarper::addGeoToPixelTransform(GDALTransformerFunc GDALTransformer, void *GDALTransformerArg, double *padfGeotransform) const
 {
   TransformChain *chain = new TransformChain;
   chain->GDALTransformer = GDALTransformer;
@@ -179,6 +180,11 @@ void *QgsImageWarper::addGeoToPixelTransform(GDALTransformerFunc GDALTransformer
     return NULL;
   }
   return (void*)chain;
+}
+
+void QgsImageWarper::destroyGeoToPixelTransform(void *GeoToPixelTransfomArg) const
+{
+  delete static_cast<TransformChain *>(GeoToPixelTransfomArg);
 }
 
 int QgsImageWarper::GeoToPixelTransform( void *pTransformerArg, int bDstToSrc, int nPointCount,

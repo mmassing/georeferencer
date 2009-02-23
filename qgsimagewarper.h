@@ -48,7 +48,8 @@ class QgsImageWarper
     static int GeoToPixelTransform( void *pTransformerArg, int bDstToSrc, int nPointCount,
                                     double *x, double *y, double *z, int *panSuccess   );
 
-    void *addGeoToPixelTransform(GDALTransformerFunc GDALTransformer, void *GDALTransformerArg, double *padfGeotransform);
+    void *addGeoToPixelTransform(GDALTransformerFunc GDALTransformer, void *GDALTransformerArg, double *padfGeotransform) const;
+    void destroyGeoToPixelTransform(void *GeoToPixelTransfomArg) const;
 
     bool openSrcDSAndGetWarpOpt(const QString &input, const QString &output,
                                 const ResamplingMethod &resampling, const GDALTransformerFunc &pfnTransform,
