@@ -22,10 +22,14 @@
 #include <gdalwarper.h>
 
 #include <QFile>
+#include <QProgressDialog>
 
 #include "qgsimagewarper.h"
 #include "qgsgeoreftransform.h"
 
+QgsImageWarper::QgsImageWarper(QWidget *theParent) : mParent(theParent)
+{
+}
 
 bool QgsImageWarper::openSrcDSAndGetWarpOpt(const QString &input, const QString &output,
                             const ResamplingMethod &resampling, const GDALTransformerFunc &pfnTransform,
@@ -140,8 +144,19 @@ bool QgsImageWarper::warpFile( const QString& input, const QString& output, cons
     return false;
   }
 
+  // Create a QT progress dialog
+  QProgressDialog *progressDialog = new QProgressDialog(mParent);
+  progressDialog->setRange(0, 100);
+  progressDialog->setAutoClose(true);
+  progressDialog->setModal(true);
+
+  // Set GDAL callbacks for the progress dialog
+  psWarpOptions->pProgressArg = createWarpProgressArg(progressDialog);
+  psWarpOptions->pfnProgress  = updateWarpProgress;
+
   psWarpOptions->hSrcDS = hSrcDS;
   psWarpOptions->hDstDS = hDstDS;
+
   // Create a transformer which transforms from source to destination pixels (and vice versa)
   psWarpOptions->pfnTransformer  = GeoToPixelTransform;
   psWarpOptions->pTransformerArg = addGeoToPixelTransform(georefTransform.GDALTransformer(),
@@ -151,10 +166,13 @@ bool QgsImageWarper::warpFile( const QString& input, const QString& output, cons
   // Initialize and execute the warp operation.
   GDALWarpOperation oOperation;
   oOperation.Initialize( psWarpOptions );
+
+  progressDialog->show();
   eErr = oOperation.ChunkAndWarpImage(0, 0, destPixels, destLines);
 
   destroyGeoToPixelTransform(psWarpOptions->pTransformerArg);
   GDALDestroyWarpOptions( psWarpOptions );
+  delete progressDialog;
 
   GDALClose( hSrcDS );
   GDALClose( hDstDS );
@@ -228,6 +246,23 @@ int QgsImageWarper::GeoToPixelTransform( void *pTransformerArg, int bDstToSrc, i
     {
       return FALSE;
     }
+  }
+  return TRUE;
+}
+
+void *QgsImageWarper::createWarpProgressArg(QProgressDialog *progressDialog) const
+{
+  return (void *)progressDialog;
+}
+
+int QgsImageWarper::updateWarpProgress(double dfComplete, const char *pszMessage, void *pProgressArg)
+{
+  QProgressDialog *progress = static_cast<QProgressDialog*>(pProgressArg);
+  progress->setValue(std::min(100u, (uint)(dfComplete*100.0)));
+  if (progress->wasCanceled())
+  {
+    //TODO: delete resulting file?
+    return FALSE;
   }
   return TRUE;
 }

@@ -459,7 +459,7 @@ bool QgsPointDialog::generateWorldFileAndWarp()
      
     d.getWarpOptions( resampling, useZeroForTrans, compressionMethod );
 
-    QgsImageWarper warper;
+    QgsImageWarper warper(this);
     if (!warper.warpFile( mLayer->source(), outputFileName, mGeorefTransform, resampling, useZeroForTrans, compressionMethod))
     {
       //TODO: be more specific in the error message

@@ -23,10 +23,13 @@
 #include "qgspoint.h"
 
 class QgsGeorefTransform;
+class QProgressDialog;
+class QWidget;
 
 class QgsImageWarper
 {
   public:
+    QgsImageWarper(QWidget *theParent);
 
     enum ResamplingMethod
     {
@@ -57,6 +60,10 @@ class QgsImageWarper
 
     bool createDestinationDataset(const QString &outputName, GDALDatasetH hSrcDS, GDALDatasetH &hDstDS, uint resX, uint resY,       
                                   double *adfGeoTransform, bool useZeroAsTrans, const QString& compression);
+
+    QWidget *mParent;
+    void      *createWarpProgressArg(QProgressDialog *progressDialog) const;
+    static int updateWarpProgress(double dfComplete, const char *pszMessage, void *pProgressArg);
 };
 
 
