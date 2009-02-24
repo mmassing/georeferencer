@@ -34,8 +34,10 @@ class QgsImageWarper
     enum ResamplingMethod
     {
       NearestNeighbour = GRA_NearestNeighbour,
-      Bilinear = GRA_Bilinear,
-      Cubic = GRA_Cubic,
+      Bilinear         = GRA_Bilinear,
+      Cubic            = GRA_Cubic,
+      CubicSpline      = GRA_CubicSpline,
+      Lanczos          = GRA_Lanczos
     };
 
     bool warpFile( const QString& input, const QString& output, const QgsGeorefTransform &georefTransform,

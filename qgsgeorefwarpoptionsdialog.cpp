@@ -62,7 +62,9 @@ void QgsGeorefWarpOptionsDialog::on_pbnOK_clicked()
   {
     QgsImageWarper::NearestNeighbour,
     QgsImageWarper::Bilinear,
-    QgsImageWarper::Cubic
+    QgsImageWarper::Cubic,
+    QgsImageWarper::CubicSpline,
+    QgsImageWarper::Lanczos
   };
   resampling = methods[cmbResampling->currentIndex()];
   useZeroAsTransparency = cbxZeroAsTrans->isChecked();
