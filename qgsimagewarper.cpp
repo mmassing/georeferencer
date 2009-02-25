@@ -149,6 +149,7 @@ bool QgsImageWarper::warpFile( const QString& input, const QString& output, cons
   progressDialog->setRange(0, 100);
   progressDialog->setAutoClose(true);
   progressDialog->setModal(true);
+  progressDialog->setMinimumDuration(0);
 
   // Set GDAL callbacks for the progress dialog
   psWarpOptions->pProgressArg = createWarpProgressArg(progressDialog);
@@ -168,6 +169,9 @@ bool QgsImageWarper::warpFile( const QString& input, const QString& output, cons
   oOperation.Initialize( psWarpOptions );
 
   progressDialog->show();
+  progressDialog->raise();
+  progressDialog->activateWindow();
+
   eErr = oOperation.ChunkAndWarpImage(0, 0, destPixels, destLines);
 
   destroyGeoToPixelTransform(psWarpOptions->pTransformerArg);
@@ -259,6 +263,7 @@ int QgsImageWarper::updateWarpProgress(double dfComplete, const char *pszMessage
 {
   QProgressDialog *progress = static_cast<QProgressDialog*>(pProgressArg);
   progress->setValue(std::min(100u, (uint)(dfComplete*100.0)));
+  // TODO: call QEventLoop manually to make "cancel" button more responsive
   if (progress->wasCanceled())
   {
     //TODO: delete resulting file?
