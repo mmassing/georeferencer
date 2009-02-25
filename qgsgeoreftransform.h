@@ -46,12 +46,12 @@ public:
 /**
  * \brief Transform class for different gcp-based transform methods.
  *
- * Select transform type via \ref selectTransformParametrisation
- * Initialize and update parameters via \ref updateParametersFromGCPs
+ * Select transform type via \ref selectTransformParametrisation.
+ * Initialize and update parameters via \ref updateParametersFromGCPs.
  * An initialized instance then provides transform functions and GDALTransformer entry points
  * for warping and coordinate remapping.
  *
- * Indirects to concrete implementations of \ref QgsGeorefInterface. For exception safety,
+ * Delegates to concrete implementations of \ref QgsGeorefInterface. For exception safety,
  * this is preferred over using the subclasses directly.
  */
 class QgsGeorefTransform : public QgsGeorefTransformInterface {
@@ -64,7 +64,7 @@ public:
     PolynomialOrder2,
     PolynomialOrder3,
     ThinPlateSpline,
-    None
+    InvalidTransform
   };
 
   QgsGeorefTransform(TransformParametrisation parametrisation);
@@ -77,7 +77,7 @@ public:
   void selectTransformParametrisation(TransformParametrisation parametrisation);
 
   /**
-   * The transform parametrisation currently in use.
+   * \brief The transform parametrisation currently in use.
    */
   TransformParametrisation transformParametrisation() const;
 
@@ -97,35 +97,38 @@ public:
   uint getMinimumGCPCount() const;
 
   /**
-   * Return funtion pointer to the GDALTransformer function.
-   * Used by the transform routines \ref transform \ref transformRasterToWorld
-   * \ref transformWorldToRaster and by (TODO) gdalwarp.
+   * \brief Return funtion pointer to the GDALTransformer function.
+   *
+   * Used by the transform routines \ref transform, \ref transformRasterToWorld
+   * \ref transformWorldToRaster and by the GDAL warping code
+   * in \ref QgsImageWarper::warpFile.
    */
   GDALTransformerFunc  GDALTransformer()     const;
   void*                GDALTransformerArgs() const;
 
   /**
-   * Transform from pixel coordinates to georeferenced coordinates.
+   * \brief Transform from pixel coordinates to georeferenced coordinates.
+   *
    * \note Negative y-axis points down in raster CS.
    */
   bool transformRasterToWorld(const QgsPoint &raster, QgsPoint &world) const;
 
   /**
-   * Transform from referenced coordinates to raster coordinates.
+   * \brief Transform from referenced coordinates to raster coordinates.
+   *
    * \note Negative y-axis points down in raster CS.
    */
   bool transformWorldToRaster(const QgsPoint &world, QgsPoint &raster) const;
 
   /**
-   * Transforms from raster to world if rasterToWorld is true, 
-   * or from world to raster when rasterToWorld is false.
+   * \brief Transforms from raster to world if rasterToWorld is true, 
+   * \brief or from world to raster when rasterToWorld is false.
+   * 
    * \note Negative y-axis points down in raster CS.
    */
   bool transform(const QgsPoint &src, QgsPoint &dst, bool rasterToWorld) const;
 
-  /**
-   * Returns origin and scale if this is a linear transform, fails otherwise.
-   */
+  //! \brief Returns origin and scale if this is a linear transform, fails otherwise.
   bool getLinearOriginScale(QgsPoint &origin, double &scaleX, double &scaleY) const;
 private:
   // shallow copy constructor
@@ -143,3 +146,4 @@ private:
 };
 
 #endif
+  

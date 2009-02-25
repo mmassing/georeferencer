@@ -50,9 +50,18 @@ class QgsImageWarper
       double              adfInvGeotransform[6];
     };
 
+    //! \sa addGeoToPixelTransform
     static int GeoToPixelTransform( void *pTransformerArg, int bDstToSrc, int nPointCount,
                                     double *x, double *y, double *z, int *panSuccess   );
 
+    /**
+     * \brief Appends a transform from geocoordinates to pixel/line coordinates to the given GDAL transformer.
+     *
+     * The resulting transform is the functional composition of the given GDAL transformer and the
+     * inverse geo transform. 
+     * \sa destroyGeoToPixelTransform
+     * \returns Argument to use with the static GDAL callback \ref GeoToPixelTransform
+     */
     void *addGeoToPixelTransform(GDALTransformerFunc GDALTransformer, void *GDALTransformerArg, double *padfGeotransform) const;
     void destroyGeoToPixelTransform(void *GeoToPixelTransfomArg) const;
 
@@ -65,6 +74,7 @@ class QgsImageWarper
 
     QWidget *mParent;
     void      *createWarpProgressArg(QProgressDialog *progressDialog) const;
+    //! \brief GDAL progress callback, used to display warping progress via a QProgressDialog
     static int updateWarpProgress(double dfComplete, const char *pszMessage, void *pProgressArg);
 };
 
