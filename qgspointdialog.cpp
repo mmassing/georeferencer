@@ -37,6 +37,7 @@
 #include "qgsmaptoolzoom.h"
 #include "qgsmaptoolpan.h"
 #include "qgsgeorefdatapoint.h"
+#include "qgsgcplistwidget.h"
 #include "qgslogger.h"
 #include "qgsproject.h"
 #include <cassert>
@@ -633,6 +634,13 @@ QWidget* QgsPointDialog::findMainWindow()
   return result;
 }
 
+void QgsPointDialog::on_pbnShowGCPList_clicked()
+{
+  mGCPListWidget->setGCPList(&mPoints);
+  mGCPListWidget->show();
+  mGCPListWidget->raise();
+}
+
 void QgsPointDialog::showCoordDialog( QgsPoint& pixelCoords )
 {
   MapCoordsDialog* mcd = new MapCoordsDialog( pixelCoords, mIface->mapCanvas(), this );
@@ -804,6 +812,9 @@ void QgsPointDialog::initialize()
   enableModifiedRasterControls( false );
   enableControls(false);
   addPoint();
+
+  mGCPListWidget = new QgsGCPListWidget(0);
+  mGCPListWidget->setGCPList(&mPoints);
 }
 
 bool QgsPointDialog::updateGeorefTransform()

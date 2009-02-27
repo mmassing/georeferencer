@@ -3,6 +3,7 @@
 
 SET (GEOREF_SRCS
      qgsgeorefplugin.cpp
+     qgsgcplistmodel.cpp
      qgsgeorefdatapoint.cpp
      qgsimagewarper.cpp
      qgsleastsquares.cpp
@@ -11,6 +12,7 @@ SET (GEOREF_SRCS
      qgsgeorefwarpoptionsdialog.cpp
      qgsgeoreftransform.cpp
      mapcoordsdialog.cpp
+     qgsgcplistwidget.cpp
 )
 
 SET (GEOREF_UIS
@@ -18,13 +20,16 @@ SET (GEOREF_UIS
      mapcoordsdialogbase.ui
      qgsgeorefdescriptiondialogbase.ui
      qgsgeorefwarpoptionsdialogbase.ui
+     qgsgcplistwidgetbase.ui
 )
 
 SET (GEOREF_MOC_HDRS
+#     qgsgcplistmodel.h
      qgsgeorefplugin.h
      qgspointdialog.h
      mapcoordsdialog.h
      qgsgeorefwarpoptionsdialog.h
+     qgsgcplistwidget.h
 )
 
 SET (GEOREF_RCCS  georeferencer.qrc)
