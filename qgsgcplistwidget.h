@@ -22,13 +22,14 @@
 
 //class QgsGCPList;
 class QgsGCPListModel;
+class QgsGeorefTransform;
 
 class QgsGCPListWidget : public QWidget, private Ui::QgsGCPListWidgetBase {
 public:
   QgsGCPListWidget(QWidget *parent = 0);
 
-  void setGCPList(QgsGCPList *list);
-
+  void setGCPList(QgsGCPList *theGCPList);
+  void setGeorefTransform(QgsGeorefTransform *theGeorefTransform);
 private:
   void initialize();
 

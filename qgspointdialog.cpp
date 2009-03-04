@@ -637,6 +637,7 @@ QWidget* QgsPointDialog::findMainWindow()
 void QgsPointDialog::on_pbnShowGCPList_clicked()
 {
   mGCPListWidget->setGCPList(&mPoints);
+  mGCPListWidget->setGeorefTransform(&mGeorefTransform);
   mGCPListWidget->show();
   mGCPListWidget->raise();
 }
@@ -815,6 +816,7 @@ void QgsPointDialog::initialize()
 
   mGCPListWidget = new QgsGCPListWidget(0);
   mGCPListWidget->setGCPList(&mPoints);
+  mGCPListWidget->setGeorefTransform(&mGeorefTransform);
 }
 
 bool QgsPointDialog::updateGeorefTransform()

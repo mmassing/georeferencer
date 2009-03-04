@@ -18,8 +18,12 @@
 
 #include <QTreeView>
 #include <QStandardItemModel>
+
 #include "qgsgcplist.h"
-#include "qgsgeorefdatapoint.h"
+
+class QgsGeorefTransform;
+//class QgsGCPList; 
+//^^currently a typedef, so no forward dec possible
 
 
 class QgsGCPListModel : public QStandardItemModel {
@@ -27,34 +31,16 @@ class QgsGCPListModel : public QStandardItemModel {
 public:
   QgsGCPListModel(QObject *parent = NULL);
   
-  void setGCPList(QgsGCPList *theGCPList)
-  {
-    mGCPList = theGCPList;
-    clear();
+  void setGCPList(QgsGCPList *theGCPList);
+  void setGeorefTransform(QgsGeorefTransform *theGeorefTransform);
+public slots:
+  void onGCPListModified();
+  void onTransformationModified();
+private:
+  void updateModel(bool gcpsDirty);
 
-    // Setup table header
-    QStringList itemLabels;
-    itemLabels<<"id"<<"srcX"<<"srcY"<<"dstX"<<"dstY";
-    setHorizontalHeaderLabels(itemLabels);
-
-    setRowCount(mGCPList->size());
-    setColumnCount(5);
-
-    for (int i = 0; i < mGCPList->size(); i++) {
-      int j = 0;
-      QgsGeorefDataPoint &p = *(*mGCPList)[i];
-         
-      setItem(i, j++, new QStandardItem(QString("%1").arg( i )));
-      setItem(i, j++, new QStandardItem(QString("%1").arg( p.pixelCoords().x() )));
-      setItem(i, j++, new QStandardItem(QString("%1").arg(-p.pixelCoords().y() )));
-      setItem(i, j++, new QStandardItem(QString("%1").arg( p.mapCoords().x()   )));
-      setItem(i, j++, new QStandardItem(QString("%1").arg( p.mapCoords().y()   )));
-    }
-    
-    reset(); // Signal to views that the model has changed
-  }  
-protected:
-  QgsGCPList *mGCPList;
+  QgsGCPList         *mGCPList;
+  QgsGeorefTransform *mGeorefTransform;
 };
 
 #endif

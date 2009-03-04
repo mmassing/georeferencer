@@ -14,6 +14,8 @@
  ***************************************************************************/
 /* $Id */
 
+#include <QHeaderView>
+
 #include "qgsgcplistwidget.h"
 #include "qgsgcplistmodel.h"
 
@@ -27,12 +29,19 @@ void QgsGCPListWidget::initialize()
 {
   mGCPListModel = new QgsGCPListModel;
   mGCPTableView->setModel(mGCPListModel);
-  //mGCPTableView->
+  mGCPTableView->setSortingEnabled(true);
+  mGCPTableView->verticalHeader()->hide();
+
 }
 
-void QgsGCPListWidget::setGCPList(QgsGCPList *gcpList)
+void QgsGCPListWidget::setGCPList(QgsGCPList *theGCPList)
 {
-  mGCPListModel->setGCPList(gcpList);
+  mGCPListModel->setGCPList(theGCPList);
+}
+
+void QgsGCPListWidget::setGeorefTransform(QgsGeorefTransform *theGeorefTransform)
+{
+  mGCPListModel->setGeorefTransform(theGeorefTransform);
 }
 
 
