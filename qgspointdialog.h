@@ -21,6 +21,7 @@
 #include <qgsrasterlayer.h>
 
 #include "qgsgeoreftransform.h"
+#include "qgsgcplist.h"
 
 #include <ui_qgspointdialogbase.h>
 
@@ -30,6 +31,7 @@ class QIcon;
 class QgsGeorefDataPoint;
 class QgsMapTool;
 class QgisInterface;
+class QgsGCPListWidget;
 
 
 class QgsPointDialog : public QDialog, private Ui::QgsPointDialogBase
@@ -59,6 +61,7 @@ class QgsPointDialog : public QDialog, private Ui::QgsPointDialogBase
     void on_pbnSelectModifiedRaster_clicked();
     void on_pbnSaveGCPs_clicked();
     void on_pbnLoadGCPs_clicked();
+    void on_pbnShowGCPList_clicked();
     void on_cmbTransformType_currentIndexChanged( const QString& );
     void on_leSelectModifiedRaster_textChanged(const QString &);
 
@@ -127,9 +130,12 @@ class QgsPointDialog : public QDialog, private Ui::QgsPointDialogBase
 
 //  std::vector<QgsPoint> mPixelCoords, mMapCoords;
 //  std::vector<QString> mAcetateIDs;
-    std::vector<QgsGeorefDataPoint*> mPoints;
+    //std::vector<QgsGeorefDataPoint*>
+    QgsGCPList mPoints;
     QgisInterface* mIface;
     int mAcetateCounter;
+
+    QgsGCPListWidget *mGCPListWidget;
 };
 
 #endif

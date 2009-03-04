@@ -104,21 +104,21 @@ private:
 
 QgsGeorefTransform::QgsGeorefTransform(const QgsGeorefTransform &other) 
 { 
-  mTransformParametrisation = None;
+  mTransformParametrisation = InvalidTransform;
   mGeorefTransformImplementation = NULL;
   selectTransformParametrisation(other.mTransformParametrisation);
 }
 
 QgsGeorefTransform::QgsGeorefTransform(TransformParametrisation parametrisation) 
 {
-  mTransformParametrisation = None;
+  mTransformParametrisation = InvalidTransform;
   mGeorefTransformImplementation = NULL;
   selectTransformParametrisation(parametrisation);    
 }
 
 QgsGeorefTransform::QgsGeorefTransform()
 { 
-  mTransformParametrisation = None;
+  mTransformParametrisation = InvalidTransform;
   mGeorefTransformImplementation = NULL;
   mParametersInitialized = false;
 }
