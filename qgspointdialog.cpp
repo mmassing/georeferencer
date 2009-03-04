@@ -242,6 +242,27 @@ QgsGeorefTransform::TransformParametrisation QgsPointDialog::convertTransformStr
     throw std::invalid_argument((transformName+" does not match a known transform type.").toStdString());
 }
 
+void QgsPointDialog::jumpToGCP(uint theGCPIndex)
+{
+  if (theGCPIndex >= mPoints.size())
+  {
+    return;
+  }
+
+  // qgsmapcanvas doesn't seem to have a method for recentering the map
+  QgsRectangle ext = mCanvas->extent();
+
+  QgsPoint center = ext.center();
+  QgsPoint new_center = mPoints[theGCPIndex]->pixelCoords();
+
+  QgsPoint diff(new_center.x() - center.x(), new_center.y() - center.y());
+  QgsRectangle new_extent(ext.xMinimum() + diff.x(), ext.yMinimum() + diff.y(),
+                          ext.xMaximum() + diff.x(), ext.yMaximum() + diff.y());
+  mCanvas->setExtent(new_extent); 
+  mCanvas->refresh();
+}
+
+
 void QgsPointDialog::on_pbnSaveGCPs_clicked()
 {
 	// create arrays with points from mPoints
@@ -817,6 +838,7 @@ void QgsPointDialog::initialize()
   mGCPListWidget = new QgsGCPListWidget(0);
   mGCPListWidget->setGCPList(&mPoints);
   mGCPListWidget->setGeorefTransform(&mGeorefTransform);
+  connect( mGCPListWidget, SIGNAL( jumpToGCP( uint )), this, SLOT( jumpToGCP( uint )));
 }
 
 bool QgsPointDialog::updateGeorefTransform()
