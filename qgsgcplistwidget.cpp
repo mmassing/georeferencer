@@ -51,7 +51,14 @@ void QgsGCPListWidget::setGeorefTransform(QgsGeorefTransform *theGeorefTransform
 
 void QgsGCPListWidget::itemDoubleClicked(const QModelIndex &index)
 {
-  emit jumpToGCP(index.row());
+  QStandardItem *item = mGCPListModel->item(index.row(), 0);
+  bool ok;
+  int id = item->text().toInt(&ok);
+
+  if (ok)
+  {
+   emit jumpToGCP(id);
+  }
 }
 
 
