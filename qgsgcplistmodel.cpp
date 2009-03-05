@@ -92,7 +92,8 @@ void QgsGCPListModel::updateModel(bool gcpsDirty)
   setRowCount(mGCPList->size());
 
 
-  if (gcpsDirty && mGeorefTransform) {
+  if (gcpsDirty && mGeorefTransform) 
+  {
     vector<QgsPoint> rC, mC;
     // TODO: move this vector extraction snippet into QgsGCPList
     for (int i = 0; i < mGCPList->size(); i++) {
@@ -104,7 +105,8 @@ void QgsGCPListModel::updateModel(bool gcpsDirty)
     mGeorefTransform->updateParametersFromGCPs(mC, rC);
   }
 
-  for (int i = 0; i < mGCPList->size(); i++) {
+  for (int i = 0; i < mGCPList->size(); i++) 
+  {
     int j = 0;
     QgsGeorefDataPoint &p = *(*mGCPList)[i];
         
@@ -121,8 +123,8 @@ void QgsGCPListModel::updateModel(bool gcpsDirty)
     {
       QgsPoint dst; 
       // Transform from world to raster coordinate:
-      // This is the transform direction used by the warp operation, and
-      // as transforms of order >=2 are not invertible, we are only
+      // This is the transform direction used by the warp operation.
+      // As transforms of order >=2 are not invertible, we are only
       // interested in the residual in this direction
       mGeorefTransform->transformWorldToRaster(p.mapCoords(), dst);
       dX = (dst.x() - p.pixelCoords().x());

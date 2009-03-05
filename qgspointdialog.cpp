@@ -151,13 +151,13 @@ void QgsPointDialog::openImageFile( QString layerPath )
 
 void QgsPointDialog::addPoint( const QgsPoint& pixelCoords, const QgsPoint& mapCoords )
 {
-  QgsGeorefDataPoint* pnt = new QgsGeorefDataPoint( mCanvas,
-      mAcetateCounter++, pixelCoords, mapCoords );
-  pnt->show();
+  QgsGeorefDataPoint* pnt = new QgsGeorefDataPoint( mCanvas, mIface->mapCanvas(), mAcetateCounter++, pixelCoords, mapCoords );
+
   mPoints.push_back( pnt );
   mGCPsDirty = true;
 
   mCanvas->refresh();
+  mIface->mapCanvas()->refresh();
 }
 
 void QgsPointDialog::on_leSelectModifiedRaster_textChanged(const QString &name)
