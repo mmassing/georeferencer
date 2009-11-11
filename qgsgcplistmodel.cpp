@@ -85,14 +85,15 @@ void QgsGCPListModel::updateModel(bool gcpsDirty)
   // Setup table header
   QStringList itemLabels;
   // Set column headers
-  itemLabels<<"id"<<"srcX"<<"srcY"<<"dstX"<<"dstY"<<"residual";
+  itemLabels<<"id"<<"srcX"<<"srcY"<<"dstX"<<"dstY"<<"dX"<<"dY"<<"residual";
   setColumnCount(itemLabels.size());
   setHorizontalHeaderLabels(itemLabels);
 
   setRowCount(mGCPList->size());
 
 
-  if (gcpsDirty && mGeorefTransform) {
+  if (gcpsDirty && mGeorefTransform) 
+  {
     vector<QgsPoint> rC, mC;
     // TODO: move this vector extraction snippet into QgsGCPList
     for (int i = 0; i < mGCPList->size(); i++) {
@@ -104,7 +105,8 @@ void QgsGCPListModel::updateModel(bool gcpsDirty)
     mGeorefTransform->updateParametersFromGCPs(mC, rC);
   }
 
-  for (int i = 0; i < mGCPList->size(); i++) {
+  for (int i = 0; i < mGCPList->size(); i++) 
+  {
     int j = 0;
     QgsGeorefDataPoint &p = *(*mGCPList)[i];
         
@@ -115,23 +117,31 @@ void QgsGCPListModel::updateModel(bool gcpsDirty)
     setItem(i, j++, create_item<double>( p.mapCoords().y() ));
 
     double residual = -1.f;
+    double dX, dY;
     // Calculate residual if transform is available and up-to-date
     if (mGeorefTransform && mGeorefTransform->parametersInitialized()) 
     {
       QgsPoint dst; 
       // Transform from world to raster coordinate:
-      // This is the transform direction used by the warp operation, and
-      // as transforms of order >=2 are not invertible, we are only
+      // This is the transform direction used by the warp operation.
+      // As transforms of order >=2 are not invertible, we are only
       // interested in the residual in this direction
       mGeorefTransform->transformWorldToRaster(p.mapCoords(), dst);
-      double dX = (dst.x() - p.pixelCoords().x());
-      double dY = (dst.y() - p.pixelCoords().y());
+      dX = (dst.x() - p.pixelCoords().x());
+      dY = (dst.y() - p.pixelCoords().y());
       residual = sqrt(dX*dX + dY*dY);
     }
-    if (residual >= 0.f)
+    if (residual >= 0.f) {
+      setItem(i, j++, create_item<double>(dX));
+      setItem(i, j++, create_item<double>(-dY));
       setItem(i, j++, create_item<double>(residual));
-    else
+    }
+    else {
       setItem(i, j++, create_std_item("n/a"));
+      setItem(i, j++, create_std_item("n/a"));
+      setItem(i, j++, create_std_item("n/a"));
+    }
   }
-  reset(); // Signal to views that the model has changed
+  //sort();  // Sort data
+  //reset(); // Signal to views that the model has changed
 }

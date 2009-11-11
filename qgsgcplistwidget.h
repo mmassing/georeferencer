@@ -25,11 +25,17 @@ class QgsGCPListModel;
 class QgsGeorefTransform;
 
 class QgsGCPListWidget : public QWidget, private Ui::QgsGCPListWidgetBase {
+  Q_OBJECT
 public:
   QgsGCPListWidget(QWidget *parent = 0);
 
   void setGCPList(QgsGCPList *theGCPList);
   void setGeorefTransform(QgsGeorefTransform *theGeorefTransform);
+public slots:
+  // This slot is called by the list view if an item is double-clicked
+  void itemDoubleClicked(const QModelIndex &);
+signals:
+  void jumpToGCP(uint theGCPIndex);
 private:
   void initialize();
 

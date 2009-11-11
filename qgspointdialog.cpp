@@ -106,14 +106,6 @@ QgsPointDialog::~QgsPointDialog()
 
 void QgsPointDialog::openImageFile( QString layerPath )
 {
-  //delete old points
-  for ( std::vector<QgsGeorefDataPoint*>::iterator it = mPoints.begin(); it != mPoints.end(); ++it )
-  {
-    delete *it;
-  }
-  mPoints.clear();
-  mAcetateCounter = 0;
-
   //delete any old rasterlayers
   if ( mLayer )
   {
@@ -151,14 +143,18 @@ void QgsPointDialog::openImageFile( QString layerPath )
 
 void QgsPointDialog::addPoint( const QgsPoint& pixelCoords, const QgsPoint& mapCoords )
 {
-  QgsGeorefDataPoint* pnt = new QgsGeorefDataPoint( mCanvas,
-      mAcetateCounter++, pixelCoords, mapCoords );
-  pnt->show();
+  addPointWithoutRefresh(pixelCoords, mapCoords);
+  mCanvas->refresh();
+  mIface->mapCanvas()->refresh();
+}
+
+void QgsPointDialog::addPointWithoutRefresh( const QgsPoint& pixelCoords, const QgsPoint& mapCoords )
+{
+  QgsGeorefDataPoint* pnt = new QgsGeorefDataPoint( mCanvas, mIface->mapCanvas(), mAcetateCounter++, pixelCoords, mapCoords );
   mPoints.push_back( pnt );
   mGCPsDirty = true;
-
-  mCanvas->refresh();
 }
+
 
 void QgsPointDialog::on_leSelectModifiedRaster_textChanged(const QString &name)
 {
@@ -241,6 +237,27 @@ QgsGeorefTransform::TransformParametrisation QgsPointDialog::convertTransformStr
   else 
     throw std::invalid_argument((transformName+" does not match a known transform type.").toStdString());
 }
+
+void QgsPointDialog::jumpToGCP(uint theGCPIndex)
+{
+  if (theGCPIndex >= mPoints.size())
+  {
+    return;
+  }
+
+  // qgsmapcanvas doesn't seem to have a method for recentering the map
+  QgsRectangle ext = mCanvas->extent();
+
+  QgsPoint center = ext.center();
+  QgsPoint new_center = mPoints[theGCPIndex]->pixelCoords();
+
+  QgsPoint diff(new_center.x() - center.x(), new_center.y() - center.y());
+  QgsRectangle new_extent(ext.xMinimum() + diff.x(), ext.yMinimum() + diff.y(),
+                          ext.xMaximum() + diff.x(), ext.yMaximum() + diff.y());
+  mCanvas->setExtent(new_extent); 
+  mCanvas->refresh();
+}
+
 
 void QgsPointDialog::on_pbnSaveGCPs_clicked()
 {
@@ -478,6 +495,14 @@ void QgsPointDialog::loadGCPs(QString &fileName)
   QFile pointFile( fileName );
   if ( pointFile.open( QIODevice::ReadOnly ) )
   {
+    //delete old points
+    for ( std::vector<QgsGeorefDataPoint*>::iterator it = mPoints.begin(); it != mPoints.end(); ++it )
+    {
+      delete *it;
+    }
+    mPoints.clear();
+    mAcetateCounter = 0;
+ 
     QTextStream points( &pointFile );
     QString tmp;
     // read the header
@@ -489,12 +514,13 @@ void QgsPointDialog::loadGCPs(QString &fileName)
     {
       QgsPoint mapCoords( mapX, mapY );
       QgsPoint pixelCoords( pixelX, pixelY );
-      addPoint( pixelCoords, mapCoords );
+      addPointWithoutRefresh( pixelCoords, mapCoords );
       // read the next line
       points >> mapX >> mapY >> pixelX >> pixelY;
     }
   }
   mGCPsDirty = true;
+  mGCPListWidget->setGCPList(&mPoints); //TODO: use signal slot mechanism to update model
   mCanvas->refresh();
 }
 
@@ -817,6 +843,7 @@ void QgsPointDialog::initialize()
   mGCPListWidget = new QgsGCPListWidget(0);
   mGCPListWidget->setGCPList(&mPoints);
   mGCPListWidget->setGeorefTransform(&mGeorefTransform);
+  connect( mGCPListWidget, SIGNAL( jumpToGCP( uint )), this, SLOT( jumpToGCP( uint )));
 }
 
 bool QgsPointDialog::updateGeorefTransform()

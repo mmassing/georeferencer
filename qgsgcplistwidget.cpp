@@ -19,6 +19,10 @@
 #include "qgsgcplistwidget.h"
 #include "qgsgcplistmodel.h"
 
+#include "qgspointdialog.h"
+
+#include <iostream> //debugging
+
 QgsGCPListWidget::QgsGCPListWidget(QWidget *parent) : QWidget(parent)
 {
   setupUi(this);
@@ -32,6 +36,7 @@ void QgsGCPListWidget::initialize()
   mGCPTableView->setSortingEnabled(true);
   mGCPTableView->verticalHeader()->hide();
 
+  connect(mGCPTableView, SIGNAL(doubleClicked(const QModelIndex &)), this, SLOT(itemDoubleClicked(const QModelIndex &)));
 }
 
 void QgsGCPListWidget::setGCPList(QgsGCPList *theGCPList)
@@ -42,6 +47,18 @@ void QgsGCPListWidget::setGCPList(QgsGCPList *theGCPList)
 void QgsGCPListWidget::setGeorefTransform(QgsGeorefTransform *theGeorefTransform)
 {
   mGCPListModel->setGeorefTransform(theGeorefTransform);
+}
+
+void QgsGCPListWidget::itemDoubleClicked(const QModelIndex &index)
+{
+  QStandardItem *item = mGCPListModel->item(index.row(), 0);
+  bool ok;
+  int id = item->text().toInt(&ok);
+
+  if (ok)
+  {
+   emit jumpToGCP(id);
+  }
 }
 
 
