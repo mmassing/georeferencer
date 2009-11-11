@@ -77,16 +77,17 @@ class QgsPointDialog : public QDialog, private Ui::QgsPointDialogBase
     void extentsChangedMainCanvas();   // Called when the qgis main canvas extents have changed. Used by map follow mode.
 
     void jumpToGCP(uint theGCPIndex);
-
+// 
 //    void enableRelevantControls( void );
 
   private:
-
     void initialize();
     bool generateWorldFileAndWarp();
     bool helmertWarp();
     void loadGCPs(QString &);
     void saveGCPs( std::vector<QgsPoint>, std::vector<QgsPoint> );
+    void addPointWithoutRefresh( const QgsPoint& pixelCoords, const QgsPoint& mapCoords );
+
     QString guessWorldFileName( const QString& raster );
 
     void enableModifiedRasterControls( bool state );

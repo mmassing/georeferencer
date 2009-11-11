@@ -106,14 +106,6 @@ QgsPointDialog::~QgsPointDialog()
 
 void QgsPointDialog::openImageFile( QString layerPath )
 {
-  //delete old points
-  for ( std::vector<QgsGeorefDataPoint*>::iterator it = mPoints.begin(); it != mPoints.end(); ++it )
-  {
-    delete *it;
-  }
-  mPoints.clear();
-  mAcetateCounter = 0;
-
   //delete any old rasterlayers
   if ( mLayer )
   {
@@ -151,14 +143,18 @@ void QgsPointDialog::openImageFile( QString layerPath )
 
 void QgsPointDialog::addPoint( const QgsPoint& pixelCoords, const QgsPoint& mapCoords )
 {
-  QgsGeorefDataPoint* pnt = new QgsGeorefDataPoint( mCanvas, mIface->mapCanvas(), mAcetateCounter++, pixelCoords, mapCoords );
-
-  mPoints.push_back( pnt );
-  mGCPsDirty = true;
-
+  addPointWithoutRefresh(pixelCoords, mapCoords);
   mCanvas->refresh();
   mIface->mapCanvas()->refresh();
 }
+
+void QgsPointDialog::addPointWithoutRefresh( const QgsPoint& pixelCoords, const QgsPoint& mapCoords )
+{
+  QgsGeorefDataPoint* pnt = new QgsGeorefDataPoint( mCanvas, mIface->mapCanvas(), mAcetateCounter++, pixelCoords, mapCoords );
+  mPoints.push_back( pnt );
+  mGCPsDirty = true;
+}
+
 
 void QgsPointDialog::on_leSelectModifiedRaster_textChanged(const QString &name)
 {
@@ -499,6 +495,14 @@ void QgsPointDialog::loadGCPs(QString &fileName)
   QFile pointFile( fileName );
   if ( pointFile.open( QIODevice::ReadOnly ) )
   {
+    //delete old points
+    for ( std::vector<QgsGeorefDataPoint*>::iterator it = mPoints.begin(); it != mPoints.end(); ++it )
+    {
+      delete *it;
+    }
+    mPoints.clear();
+    mAcetateCounter = 0;
+ 
     QTextStream points( &pointFile );
     QString tmp;
     // read the header
@@ -510,12 +514,13 @@ void QgsPointDialog::loadGCPs(QString &fileName)
     {
       QgsPoint mapCoords( mapX, mapY );
       QgsPoint pixelCoords( pixelX, pixelY );
-      addPoint( pixelCoords, mapCoords );
+      addPointWithoutRefresh( pixelCoords, mapCoords );
       // read the next line
       points >> mapX >> mapY >> pixelX >> pixelY;
     }
   }
   mGCPsDirty = true;
+  mGCPListWidget->setGCPList(&mPoints); //TODO: use signal slot mechanism to update model
   mCanvas->refresh();
 }
 
