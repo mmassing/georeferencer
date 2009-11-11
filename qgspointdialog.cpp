@@ -127,7 +127,7 @@ void QgsPointDialog::openImageFile( QString layerPath )
   mCanvas->setLayerSet( layers );
 
   // load previously added points
-  QString gcpsPath( layerPath + ".points");
+  QString gcpsPath( layerPath + ".points" );
   loadGCPs( gcpsPath );
 
   mCanvas->setExtent( mLayer->extent() );
@@ -155,10 +155,9 @@ void QgsPointDialog::addPointWithoutRefresh( const QgsPoint& pixelCoords, const 
   mGCPsDirty = true;
 }
 
-
 void QgsPointDialog::on_leSelectModifiedRaster_textChanged(const QString &name)
 {
-  leSelectWorldFile->setText(guessWorldFileName(name));
+  leSelectWorldFile->setText( guessWorldFileName(name) );
 //  if (name.length() == 0) enableControls(false);
 }
 
@@ -171,11 +170,11 @@ void QgsPointDialog::on_pbnSelectWorldFile_clicked()
 
 void QgsPointDialog::on_pbnGenerateWorldFile_clicked()
 {
-      generateWorldFileAndWarp();
+  generateWorldFileAndWarp();
 }
 
 void QgsPointDialog::on_pbnLoadGCPs_clicked()
-{ 
+{
   QSettings settings;
   QString dir = settings.value( "/Plugin-GeoReferencer/rasterdirectory" ).toString();
   if ( dir.isEmpty() )
@@ -189,11 +188,11 @@ void QgsPointDialog::on_pbnLoadGCPs_clicked()
 
   if ( fileName.isNull() )
   {
-	QMessageBox::information( this, tr( "Information" ), tr( "GCPs was not loaded." ) );
+    QMessageBox::information( this, tr( "Information" ), tr( "GCPs was not loaded." ) );
     return;
   }
 
-  loadGCPs(fileName);
+  loadGCPs( fileName );
 }
 
 void QgsPointDialog::createGCPVectors(std::vector<QgsPoint> &mapCoords, std::vector<QgsPoint> &pixelCoords) const
@@ -301,9 +300,9 @@ void QgsPointDialog::on_pbnSelectModifiedRaster_clicked()
 
 void QgsPointDialog::on_cmbTransformType_currentIndexChanged( const QString& value )
 {
-  if (value == tr( "Linear" ))
+  if ( value == tr( "Linear" ) )
   {
-        // Reset to the default file name
+    // Reset to the default file name
     leSelectModifiedRaster->setText( "" );
     enableModifiedRasterControls( false );
     if ( mLayer )
@@ -313,10 +312,10 @@ void QgsPointDialog::on_cmbTransformType_currentIndexChanged( const QString& val
   }
   else
   {
-      enableModifiedRasterControls( true );
-      // Make up a modified raster field name based on the layer file name
-      if ( mLayer )
-      {
+    enableModifiedRasterControls( true );
+    // Make up a modified raster field name based on the layer file name
+    if ( mLayer )
+    {
       QString fileName( mLayer->source() );
       QFileInfo file( mLayer->source() );
       int pos = fileName.size() - file.suffix().size() - 1;
@@ -327,7 +326,7 @@ void QgsPointDialog::on_cmbTransformType_currentIndexChanged( const QString& val
 
       leSelectModifiedRaster->setText( fileName );
       leSelectWorldFile->setText( guessWorldFileName( fileName ) );
-      }
+    }
   }
 
   QgsGeorefTransform::TransformParametrisation parametrisation;
@@ -490,7 +489,7 @@ bool QgsPointDialog::generateWorldFileAndWarp()
   return true;
 }
 
-void QgsPointDialog::loadGCPs(QString &fileName)
+void QgsPointDialog::loadGCPs( QString &fileName )
 {
   QFile pointFile( fileName );
   if ( pointFile.open( QIODevice::ReadOnly ) )
@@ -524,7 +523,7 @@ void QgsPointDialog::loadGCPs(QString &fileName)
   mCanvas->refresh();
 }
 
-void QgsPointDialog::saveGCPs(std::vector<QgsPoint> mapCoords, std::vector<QgsPoint> pixelCoords )
+void QgsPointDialog::saveGCPs( std::vector<QgsPoint> mapCoords, std::vector<QgsPoint> pixelCoords )
 {
   QFile pointFile( mLayer->source() + ".points" );
   if ( pointFile.open( QIODevice::WriteOnly ) )

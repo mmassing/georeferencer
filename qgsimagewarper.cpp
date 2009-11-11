@@ -31,33 +31,33 @@ QgsImageWarper::QgsImageWarper(QWidget *theParent) : mParent(theParent)
 {
 }
 
-bool QgsImageWarper::openSrcDSAndGetWarpOpt(const QString &input, const QString &output,
-                            const ResamplingMethod &resampling, const GDALTransformerFunc &pfnTransform,
-                            GDALDatasetH &hSrcDS, GDALWarpOptions *&psWarpOptions)
+bool QgsImageWarper::openSrcDSAndGetWarpOpt( const QString &input, const QString &output,
+    const ResamplingMethod &resampling, const GDALTransformerFunc &pfnTransform,
+    GDALDatasetH &hSrcDS, GDALWarpOptions *&psWarpOptions )
 {
-      // Open input file
-      GDALAllRegister();
-      hSrcDS = GDALOpen( QFile::encodeName( input ).constData(), GA_ReadOnly );
-      if (hSrcDS == NULL) return false;
+  // Open input file
+  GDALAllRegister();
+  hSrcDS = GDALOpen( QFile::encodeName( input ).constData(), GA_ReadOnly );
+  if ( hSrcDS == NULL ) return false;
 
-      // Setup warp options.
-      psWarpOptions = GDALCreateWarpOptions();
-      psWarpOptions->hSrcDS = hSrcDS;
-      psWarpOptions->nBandCount = GDALGetRasterCount( hSrcDS );
-      psWarpOptions->panSrcBands =
-      ( int * ) CPLMalloc( sizeof( int ) * psWarpOptions->nBandCount );
-      psWarpOptions->panDstBands =
-      ( int * ) CPLMalloc( sizeof( int ) * psWarpOptions->nBandCount );
-      for ( int i = 0; i < psWarpOptions->nBandCount; ++i )
-      {
-      psWarpOptions->panSrcBands[i] = i + 1;
-      psWarpOptions->panDstBands[i] = i + 1;
-      }
-      psWarpOptions->pfnProgress = GDALTermProgress;
-      psWarpOptions->pfnTransformer = pfnTransform;
-      psWarpOptions->eResampleAlg = GDALResampleAlg( resampling );
+  // Setup warp options.
+  psWarpOptions = GDALCreateWarpOptions();
+  psWarpOptions->hSrcDS = hSrcDS;
+  psWarpOptions->nBandCount = GDALGetRasterCount( hSrcDS );
+  psWarpOptions->panSrcBands =
+    ( int * ) CPLMalloc( sizeof( int ) * psWarpOptions->nBandCount );
+  psWarpOptions->panDstBands =
+    ( int * ) CPLMalloc( sizeof( int ) * psWarpOptions->nBandCount );
+  for ( int i = 0; i < psWarpOptions->nBandCount; ++i )
+  {
+    psWarpOptions->panSrcBands[i] = i + 1;
+    psWarpOptions->panDstBands[i] = i + 1;
+  }
+  psWarpOptions->pfnProgress = GDALTermProgress;
+  psWarpOptions->pfnTransformer = pfnTransform;
+  psWarpOptions->eResampleAlg = GDALResampleAlg( resampling );
 
-      return true;
+  return true;
 }
 
 bool QgsImageWarper::createDestinationDataset(const QString &outputName, GDALDatasetH hSrcDS, GDALDatasetH &hDstDS, uint resX, uint resY, double *adfGeoTransform, bool useZeroAsTrans, const QString& compression)

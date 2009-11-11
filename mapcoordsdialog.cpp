@@ -21,10 +21,10 @@
 
 MapCoordsDialog::MapCoordsDialog()
 {
-      this->setWindowFlags(!Qt::Dialog);
-      this->setWindowFlags(Qt::WindowSystemMenuHint);
-      this->setWindowFlags(Qt::WindowMinimizeButtonHint);
-      this->setWindowFlags(Qt::WindowMaximizeButtonHint);
+  // setWindowFlags(!Qt::Dialog);
+  setWindowFlags( Qt::WindowSystemMenuHint );
+  setWindowFlags( Qt::WindowMinimizeButtonHint );
+  setWindowFlags( Qt::WindowMaximizeButtonHint );
 }
 
 
@@ -40,8 +40,8 @@ MapCoordsDialog::MapCoordsDialog( const QgsPoint& pixelCoords, QgsMapCanvas* qgi
 
   mToolEmitPoint = new QgsMapToolEmitPoint( qgisCanvas );
   mToolEmitPoint->setButton( btnPointFromCanvas );
-  connect(( QgsMapToolEmitPoint* )mToolEmitPoint, SIGNAL( canvasClicked( QgsPoint&, Qt::MouseButton ) ),
-          this, SLOT( maybeSetXY( QgsPoint&, Qt::MouseButton ) ) );
+  connect(( QgsMapToolEmitPoint* )mToolEmitPoint, SIGNAL( canvasClicked( const QgsPoint&, Qt::MouseButton ) ),
+          this, SLOT( maybeSetXY( const QgsPoint&, Qt::MouseButton ) ) );
 
   connect( leXCoord, SIGNAL( textChanged( const QString& ) ), this, SLOT( updateOK() ) );
   connect( leYCoord, SIGNAL( textChanged( const QString& ) ), this, SLOT( updateOK() ) );
@@ -58,22 +58,16 @@ MapCoordsDialog::~MapCoordsDialog()
 void MapCoordsDialog::updateOK()
 {
   bool enable = ( leXCoord->text().size() != 0 && leYCoord->text().size() != 0 );
-  buttonOk->setEnabled( enable );
+  buttonBox->button( QDialogButtonBox::Ok  )->setEnabled( enable );
 }
 
-void MapCoordsDialog::on_buttonOk_clicked()
+void MapCoordsDialog::accept()
 {
   QgsPoint mapCoords( leXCoord->text().toDouble(), leYCoord->text().toDouble() );
   emit pointAdded( mPixelCoords, mapCoords );
-  accept();
 }
 
-void MapCoordsDialog::on_buttonCancel_clicked()
-{
-  reject();
-}
-
-void MapCoordsDialog::maybeSetXY( QgsPoint & xy, Qt::MouseButton button )
+void MapCoordsDialog::maybeSetXY( const QgsPoint & xy, Qt::MouseButton button )
 {
   // Only LeftButton should set point
   if ( Qt::LeftButton == button )

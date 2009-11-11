@@ -30,12 +30,11 @@ class MapCoordsDialog : public QDialog, private Ui::MapCoordsDialogBase
 
   public slots:
 
-    void on_buttonOk_clicked();
-    void on_buttonCancel_clicked();
+    void accept();
 
     void on_btnPointFromCanvas_clicked();
 
-    void maybeSetXY( QgsPoint &, Qt::MouseButton );
+    void maybeSetXY( const QgsPoint &, Qt::MouseButton );
     void updateOK();
 
   private:

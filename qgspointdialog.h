@@ -62,7 +62,7 @@ class QgsPointDialog : public QDialog, private Ui::QgsPointDialogBase
     void on_pbnLoadGCPs_clicked();
     void on_pbnShowGCPList_clicked();
     void on_cmbTransformType_currentIndexChanged( const QString& );
-    void on_leSelectModifiedRaster_textChanged(const QString &);
+    void on_leSelectModifiedRaster_textChanged( const QString & );
 
     void zoomIn();
     void zoomOut();
@@ -84,14 +84,14 @@ class QgsPointDialog : public QDialog, private Ui::QgsPointDialogBase
     void initialize();
     bool generateWorldFileAndWarp();
     bool helmertWarp();
-    void loadGCPs(QString &);
+    void loadGCPs( QString & );
     void saveGCPs( std::vector<QgsPoint>, std::vector<QgsPoint> );
     void addPointWithoutRefresh( const QgsPoint& pixelCoords, const QgsPoint& mapCoords );
 
     QString guessWorldFileName( const QString& raster );
 
     void enableModifiedRasterControls( bool state );
-    void enableControls(bool state);
+    void enableControls( bool state );
     QIcon getThemeIcon( const QString theName );
 
     // The transformer used to align the qgis main canvas and the georeferencer canvas (and/or vice versa)
