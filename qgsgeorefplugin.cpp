@@ -48,6 +48,8 @@
 #include <qgsrasterlayer.h>
 #include "qgsgeorefplugin.h"
 
+#include <QFile>
+
 //
 //the gui subclass
 //
