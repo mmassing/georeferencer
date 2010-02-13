@@ -4,7 +4,7 @@
     Date                 : 27-Feb-2009
     Copyright            : (c) 2009 by Manuel Massing
     Email                : m.massing at warped-space.de
-/***************************************************************************
+ ***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -44,9 +44,9 @@ QgsGCPListModel::QgsGCPListModel(QObject *parent) : QStandardItemModel(parent), 
 
 void QgsGCPListModel::setGCPList(QgsGCPList *theGCPList)
 {
-  mGCPList = theGCPList;  
+  mGCPList = theGCPList;
   updateModel(true);
-}  
+}
 
 void QgsGCPListModel::setGeorefTransform(QgsGeorefTransform *theGeorefTransform)
 {

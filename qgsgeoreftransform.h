@@ -1,11 +1,11 @@
 /***************************************************************************
-    qgsgeoreftransform.h - Encapsulates GCP-based parameter estimation and 
+    qgsgeoreftransform.h - Encapsulates GCP-based parameter estimation and
     reprojection for different transformation models.
      --------------------------------------
     Date                 : 18-Feb-2009
     Copyright            : (c) 2009 by Manuel Massing
     Email                : m.massing at warped-space.de
-/***************************************************************************
+ ***************************************************************************
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -37,10 +37,10 @@ public:
 
   /**
    * Return funtion pointer to the GDALTransformer function.
-   * Used by GDALwarp. 
+   * Used by GDALwarp.
    */
   virtual GDALTransformerFunc  GDALTransformer()     const = 0;
-  virtual void*                GDALTransformerArgs() const = 0; 
+  virtual void*                GDALTransformerArgs() const = 0;
 };
 
 /**
@@ -60,7 +60,7 @@ public:
   enum TransformParametrisation {
     Linear,
     Helmert,
-    PolynomialOrder1,        
+    PolynomialOrder1,
     PolynomialOrder2,
     PolynomialOrder3,
     ThinPlateSpline,
@@ -117,9 +117,9 @@ public:
   bool transformWorldToRaster(const QgsPoint &world, QgsPoint &raster) const;
 
   /**
-   * \brief Transforms from raster to world if rasterToWorld is true, 
+   * \brief Transforms from raster to world if rasterToWorld is true,
    * \brief or from world to raster when rasterToWorld is false.
-   * 
+   *
    * \note Negative y-axis points down in raster CS.
    */
   bool transform(const QgsPoint &src, QgsPoint &dst, bool rasterToWorld) const;
@@ -142,4 +142,3 @@ private:
 };
 
 #endif
-  

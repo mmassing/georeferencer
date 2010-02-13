@@ -161,9 +161,9 @@ bool QgsImageWarper::warpFile( const QString& input, const QString& output, cons
   // Create a transformer which transforms from source to destination pixels (and vice versa)
   psWarpOptions->pfnTransformer  = GeoToPixelTransform;
   psWarpOptions->pTransformerArg = addGeoToPixelTransform(georefTransform.GDALTransformer(),
-                                                          georefTransform.GDALTransformerArgs(), 
+                                                          georefTransform.GDALTransformerArgs(),
                                                           adfGeoTransform);
- 
+
   // Initialize and execute the warp operation.
   GDALWarpOperation oOperation;
   oOperation.Initialize( psWarpOptions );
@@ -194,7 +194,7 @@ void *QgsImageWarper::addGeoToPixelTransform(GDALTransformerFunc GDALTransformer
   chain->GDALTransformer = GDALTransformer;
   chain->GDALTransformerArg = GDALTransformerArg;
   memcpy(chain->adfGeotransform, padfGeotransform, sizeof(double)*6);
-  // TODO: In reality we don't require the full homogeneous matrix, so GeoToPixelTransform and matrix inversion could 
+  // TODO: In reality we don't require the full homogeneous matrix, so GeoToPixelTransform and matrix inversion could
   // be optimized for simple scale+offset if there's the need (e.g. for numerical or performance reasons).
   if (!GDALInvGeoTransform(chain->adfGeotransform, chain->adfInvGeotransform))
   {
@@ -211,7 +211,7 @@ void QgsImageWarper::destroyGeoToPixelTransform(void *GeoToPixelTransfomArg) con
 
 int QgsImageWarper::GeoToPixelTransform( void *pTransformerArg, int bDstToSrc, int nPointCount,
                                          double *x, double *y, double *z, int *panSuccess   )
-{ 
+{
   TransformChain *chain = static_cast<TransformChain*>(pTransformerArg);
   if (chain == NULL)
   {
@@ -221,7 +221,7 @@ int QgsImageWarper::GeoToPixelTransform( void *pTransformerArg, int bDstToSrc, i
   if ( bDstToSrc == FALSE )
   {
     // Transform to georeferenced coordinates
-    if (!chain->GDALTransformer(chain->GDALTransformerArg, bDstToSrc, nPointCount, x, y, z, panSuccess)) 
+    if (!chain->GDALTransformer(chain->GDALTransformerArg, bDstToSrc, nPointCount, x, y, z, panSuccess))
     {
       return FALSE;
     }
@@ -232,7 +232,7 @@ int QgsImageWarper::GeoToPixelTransform( void *pTransformerArg, int bDstToSrc, i
       double xP = x[i];
       double yP = y[i];
       x[i] = chain->adfInvGeotransform[0] + xP*chain->adfInvGeotransform[1] + yP*chain->adfInvGeotransform[2];
-      y[i] = chain->adfInvGeotransform[3] + xP*chain->adfInvGeotransform[4] + yP*chain->adfInvGeotransform[5];    
+      y[i] = chain->adfInvGeotransform[3] + xP*chain->adfInvGeotransform[4] + yP*chain->adfInvGeotransform[5];
     }
   }
   else
@@ -246,7 +246,7 @@ int QgsImageWarper::GeoToPixelTransform( void *pTransformerArg, int bDstToSrc, i
       y[i] = chain->adfGeotransform[3] + P*chain->adfGeotransform[4] + L*chain->adfGeotransform[5];
     }
     // Transform from georeferenced coordinates to source pixel/line
-    if (!chain->GDALTransformer(chain->GDALTransformerArg, bDstToSrc, nPointCount, x, y, z, panSuccess)) 
+    if (!chain->GDALTransformer(chain->GDALTransformerArg, bDstToSrc, nPointCount, x, y, z, panSuccess))
     {
       return FALSE;
     }
@@ -259,7 +259,7 @@ void *QgsImageWarper::createWarpProgressArg(QProgressDialog *progressDialog) con
   return (void *)progressDialog;
 }
 
-int QgsImageWarper::updateWarpProgress(double dfComplete, const char *pszMessage, void *pProgressArg)
+int CPL_STDCALL QgsImageWarper::updateWarpProgress(double dfComplete, const char *pszMessage, void *pProgressArg)
 {
   QProgressDialog *progress = static_cast<QProgressDialog*>(pProgressArg);
   progress->setValue(std::min(100u, (uint)(dfComplete*100.0)));

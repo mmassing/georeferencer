@@ -75,7 +75,7 @@ class QgsImageWarper
     QWidget *mParent;
     void      *createWarpProgressArg(QProgressDialog *progressDialog) const;
     //! \brief GDAL progress callback, used to display warping progress via a QProgressDialog
-    static int updateWarpProgress(double dfComplete, const char *pszMessage, void *pProgressArg);
+    static int CPL_STDCALL updateWarpProgress(double dfComplete, const char *pszMessage, void *pProgressArg);
 };
 
 
